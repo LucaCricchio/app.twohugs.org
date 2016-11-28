@@ -25,12 +25,12 @@ class UserController extends Controller
                 'first_name' => 'required',
                 'last_name'  => 'required',
                 'birth_date' => 'required|birth_date',
-                'country'    => 'sometimes|exists:countries,id',
-                'city'       => 'sometimes',
-                'gender'     => 'sometimes|regex:/^[MF]$/',
-                'address'    => 'sometimes',
-                'zipcode'    => 'sometimes|regex:/^[0-9]+$/',
-                'parent_email' => 'sometimes|unique:users,parent_email'
+                'country'    => 'bail|exists:countries,id',
+                'city'       => 'bail',
+                'gender'     => 'bail|regex:/^[MF]$/',
+                'address'    => 'bail',
+                'zipcode'    => 'bail|regex:/^[0-9]+$/',
+                'parent_email' => 'bail|unique:users,parent_email'
             ]);
             $data = $request->all();
             $user = new User;
