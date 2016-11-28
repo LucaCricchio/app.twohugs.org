@@ -2,6 +2,8 @@
 
 return [
 
+    'api_version' => '0.0.1',
+
     /*
     |--------------------------------------------------------------------------
     | Application Name
@@ -140,6 +142,7 @@ return [
         /*
          * Laravel Framework Service Providers...
          */
+        Illuminate\Foundation\Providers\ArtisanServiceProvider::class,
         Illuminate\Auth\AuthServiceProvider::class,
         Illuminate\Broadcasting\BroadcastServiceProvider::class,
         Illuminate\Bus\BusServiceProvider::class,
@@ -164,6 +167,12 @@ return [
         Illuminate\View\ViewServiceProvider::class,
 
         /*
+        * IDE Helper
+        */
+        Barryvdh\LaravelIdeHelper\IdeHelperServiceProvider::class,
+
+
+        /*
          * Package Service Providers...
          */
 
@@ -177,6 +186,16 @@ return [
         // App\Providers\BroadcastServiceProvider::class,
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
+
+        /*
+        * JWT Provider
+        */
+        Tymon\JWTAuth\Providers\JWTAuthServiceProvider::class,
+
+        /*
+         * Push Notification
+         */
+        Davibennun\LaravelPushNotification\LaravelPushNotificationServiceProvider::class,
 
     ],
 
@@ -226,6 +245,11 @@ return [
         'Validator' => Illuminate\Support\Facades\Validator::class,
         'View' => Illuminate\Support\Facades\View::class,
 
+        // JWT Facade
+        'JWTAuth'   => Tymon\JWTAuth\Facades\JWTAuth::class,
+
+        //Push Notification
+        'PushNotification' => Davibennun\LaravelPushNotification\Facades\PushNotification::class,
     ],
 
 ];
