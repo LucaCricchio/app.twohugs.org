@@ -8,3 +8,4 @@ Homestead.json
 .envREMOTE
 .vagrant
 composer.lock
+_ide_helper.php

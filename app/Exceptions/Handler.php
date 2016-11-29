@@ -2,9 +2,14 @@
 
 namespace App\Exceptions;
 
+use App\Helpers\ErrorCode;
 use Exception;
-use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Auth\AuthenticationException;
 
 class Handler extends ExceptionHandler
 {
@@ -44,7 +49,19 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Exception $exception)
     {
-        return parent::render($request, $exception);
+        if ($exception instanceof ModelNotFoundException) {
+            $exception = new NotFoundHttpException($exception->getMessage(), $exception);
+        }
+
+        if($exception instanceof ValidationException){
+            return $this->validationErrorResponse($exception->getErrors()->toArray());
+        }
+
+        if($exception instanceof ExceptionWithCustomCode){
+            return $this->errorResponse($exception->getMessage(), $exception->getCode(), $exception->getErrorCode());
+        }
+
+        return $this->genericErrorResponse($exception);
     }
 
 

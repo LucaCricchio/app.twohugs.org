@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\User;
+use App\Models\VipPost;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
 
@@ -23,6 +25,8 @@ class Vip extends Model
     //disabling autofilling timestamps fields (created_at and updated_at)
     public $timestamps = false;
 
+    protected $id;
+
     /**
      * The database table used by the model.
      *
@@ -38,6 +42,14 @@ class Vip extends Model
     //protected $fillable = ['name', 'email', 'password'];
 
 
+    public function __construct()
+    {
+
+        parent::__construct();
+        User::whereId($this->id);
+
+    }
+
     /**
      * Registra un nuovo Vip
      * @param $data
@@ -51,6 +63,8 @@ class Vip extends Model
         $this->save();
     }
 
-
+    public function posts(){
+        return $this->hasMany('App\Models\VipPost');
+    }
 
 }

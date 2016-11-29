@@ -89,6 +89,9 @@ Route::group(['prefix' => 'hugs', 'as' => 'hugs.'], function () {
 Route::group(['prefix' => 'vip'], function () {
     Route::get('monthList', 'VipController@getMonthVipList');
 
+    //get last activities (posts) from current VIP
+    Route::get('activities', 'VipController@getCurrentVipActivities');
+
     Route::post('accept', 'VipController@accept');
 
     Route::post('decline', 'VipController@decline');
@@ -112,7 +115,3 @@ Route::get('/simulator', function () {
     return view('simulator');
 });
 
-
-Auth::routes();
-
-Route::get('/home', 'HomeController@index');

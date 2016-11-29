@@ -148,8 +148,24 @@ class VipController extends Controller
 
     }
 
+    //get current Vip and his activities
+    public function getCurrentVipActivities(){
 
+        $vip = $this->getCurrentVip();
+        $vip->posts;
 
+        return parent::response([
+                "vip" => $vip,
+            ]
+        );
+
+    }
+
+    //get current VIP
+    //todo: aggiungere stato o 'blocked' alla tabella VIP
+    private function getCurrentVip(){
+        return Vip::orderBy('created_at', 'desc')->first();
+    }
 
 
 }
