@@ -18,6 +18,7 @@ use Carbon\Carbon;
  * @method static \Illuminate\Database\Query\Builder|\App\Models\Vip whereId($value)
  * @method static \Illuminate\Database\Query\Builder|\App\Models\Vip whereUserId($value)
  * @method static \Illuminate\Database\Query\Builder|\App\Models\Vip whereCreatedAt($value)
+ * @method static \Illuminate\Database\Query\Builder|\App\Models\Vip whereActive($value)
  * @mixin \Eloquent
  */
 class Vip extends Model
@@ -27,6 +28,7 @@ class Vip extends Model
 
     protected $id;
 
+
     /**
      * The database table used by the model.
      *
@@ -34,21 +36,6 @@ class Vip extends Model
      */
     protected $table = 'vips';
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
-    //protected $fillable = ['name', 'email', 'password'];
-
-
-    public function __construct()
-    {
-
-        parent::__construct();
-        User::whereId($this->id);
-
-    }
 
     /**
      * Registra un nuovo Vip
@@ -63,8 +50,18 @@ class Vip extends Model
         $this->save();
     }
 
+    /**
+     * Recupera i Post dell'utente vip
+     */
     public function posts(){
         return $this->hasMany('App\Models\VipPost');
+    }
+
+    /**
+     *  Load user data
+     */
+    public function user(){
+        return $this->belongsTo('App\Models\User');
     }
 
 }

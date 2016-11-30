@@ -19,6 +19,7 @@ use Illuminate\Database;
 class VipController extends Controller
 {
 
+
     //User accept to be VIP
     public function accept(Request $request)
     {
@@ -148,24 +149,49 @@ class VipController extends Controller
 
     }
 
-    //get current Vip and his activities
+    //get currents VIPS and their activities
     public function getCurrentVipActivities(){
 
-        $vip = $this->getCurrentVip();
-        $vip->posts;
+        $vips = self::getActiveVips();
+
+        foreach($vips AS $vip) {
+            //load vip posts
+            $vip->posts;
+            $vip->user;
+        }
 
         return parent::response([
-                "vip" => $vip,
+                "vipActivities" => $vips,
             ]
         );
 
     }
 
-    //get current VIP
-    //todo: aggiungere stato o 'blocked' alla tabella VIP
-    private function getCurrentVip(){
-        return Vip::orderBy('created_at', 'desc')->first();
+
+    /* get currents VIP
+     * @params $onlyUserIds if true, returns an array with only users Id
+     */
+    public static function getActiveVips($onlyUserIds = false){
+
+        if($onlyUserIds === true){
+            return Vip::whereActive(1)
+                ->orderBy('created_at', 'desc')->pluck('user_id')->toArray();
+        }else {
+            return Vip::whereActive(1)
+                ->orderBy('created_at', 'desc')->get();
+        }
     }
 
+
+
+    //check if an user is currently a Vip
+    public static function isVip($userId)
+    {
+        $vipList = self::getActiveVips(true);
+        if (in_array($userId, $vipList))
+            return true;
+        else
+            return false;
+    }
 
 }

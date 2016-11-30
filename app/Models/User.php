@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Http\Controllers\VipController;
 use Hash;
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
@@ -11,6 +12,7 @@ use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Contracts\Auth\Access\Authorizable as AuthorizableContract;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Carbon\Carbon;
+use League\Flysystem\Exception;
 
 
 /**
@@ -126,6 +128,22 @@ class User extends Model implements AuthenticatableContract,
      * @var array
      */
     protected $hidden = ['password', 'remember_token'];
+
+
+
+    public function toArray()
+    {
+        $attributes = parent::toArray();
+        //aggiungo un campo is_vip ogni qualvolta restituisco l'utente.
+        $attributes["is_vip"] = $this->is_vip;
+
+        return $attributes;
+    }
+    //accessor to set is_vip value
+     public function getIsVipAttribute($value)
+    {
+        return VipController::isVip($this->id);
+    }
 
 
     /**
