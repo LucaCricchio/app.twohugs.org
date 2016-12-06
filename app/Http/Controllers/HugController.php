@@ -190,7 +190,14 @@ class HugController extends Controller
      */
     public function refresh(Request $request, $id)
     {
+        $this->validate($request, [
+            'geo_latitude'  => 'required|regex:/^(-)?[0-9]{1,3}\.[0-9]{1,7}+$/',
+            'geo_longitude' => 'required|regex:/^(-)?[0-9]{1,3}\.[0-9]{1,7}+$/',
+        ]);
+
         $user = $this->getAuthenticatedUser();
+        $user->updatePosition($request->input('geo_latitude'), $request->input('geo_longitude'));
+
 
         /**
          * @var Hug $hug
@@ -208,10 +215,19 @@ class HugController extends Controller
             ]);
         }
 
+        //check whether the user that call the refresh is the seeker ot the sought of the hug
+        if ($user->id == $hug->user_seeker_id) {
+            $userToHug = User::whereId($hug->user_sought_id)->first();
+        } else {
+            $userToHug = User::whereId($hug->user_seeker_id)->first();
+        }
+
+
         if (($timedOutUserId = $this->otherUserIsAlive($hug, $user)) !== true) {
             // l'altro utente non ha inviato il check in entro il massimo ritardo consentito. Chiudo l'abbraccio dichiarando il timeout dell'altro utente
             $hug->close($user, $timedOutUserId);
         }
+
 
         return parent::response([
                                     /*
@@ -220,6 +236,9 @@ class HugController extends Controller
                                      * Forse conviene solo passare eventuali id di selfie + la posizione aggiornata, (poi l'app aprire get parallele per il fetch)
                                      * In ogni caso solo pochi byte.
                                     */
+                                    "user_to_hug_geo_latitude" => $userToHug->geo_latitude,
+                                    "user_to_hug_geo_longitude" => $userToHug->geo_longitude,
+
                                 ]);
     }
 
