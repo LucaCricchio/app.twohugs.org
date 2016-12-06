@@ -50,6 +50,7 @@ class ProfileController extends Controller
         }
         return parent::response([
             'success'    => true,
+            'user'       => $user,
         ]);
     }
 
