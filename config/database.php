@@ -62,7 +62,7 @@ return [
             'charset' => 'utf8',
             'collation' => 'utf8_unicode_ci',
             'prefix' => '',
-            'strict' => true,
+            'strict' => false, //SearchList->fillList problema compatibilità query: https://mattstauffer.co/blog/strict-mode-and-other-mysql-customizations-in-laravel-5-2
             'engine' => null,
         ],
 
