@@ -13,7 +13,6 @@ use App\Models\Search;
 use App\Models\SearchList;
 use App\Models\SearchListUser;
 use App\Models\User;
-use App\Models\UserHugFeedback;
 use App\Models\UserSearchTimeout;
 use Carbon\Carbon;
 use DB;
@@ -69,9 +68,11 @@ class SearchController extends Controller
             throw new ExceptionWithCustomCode("Utente non autorizzato", ErrorCode::USER_NOT_AUTHORISED, 403);
         }
 
+		SearchLogger::debug("Controllo che l'utente possa lanciare una ricerca... [{$user->id}]");
         $this->checkIfUserCanLaunchSearch($user);
 
         // Creo istanza di ricerca
+	    SearchLogger::debug("Creo istanza di ricerca...");
         $search                = new Search;
         $search->user_id       = $user->id;
         $search->max_duration  = 600; // 10 minuti //$user->max_duration;
@@ -81,18 +82,23 @@ class SearchController extends Controller
         $search->ip            = $request->ip();
         $search->save();
 
+	    SearchLogger::debug("Istanza creata. ID {$search->id}");
 	    SearchLogger::setSearchId($search->id);
 
         // Aggiorno posizione dell'utente
         $user->geo_last_update = new Carbon;
         $user->geo_latitude    = $data['geo_latitude'];
         $user->geo_longitude   = $data['geo_longitude'];
+	    SearchLogger::debug(sprintf("Aggiornata posizione dell'utente. Lat: %s, Lng: %s", $data['geo_latitude'], $data['geo_longitude']));
 
 
         // Creo una nuova lista di ricerca
+	    SearchLogger::debug("Creo la lista di ricerca...");
         $search->createNewList();
+	    SearchLogger::debug("Lista creata.");
 
         // Si inizia!
+	    SearchLogger::debug("Iniziamo il processo di ricerca.");
         $inProgress = $this->process($search);
 
         if ($inProgress === true) {
@@ -143,14 +149,17 @@ class SearchController extends Controller
          * @var Search $search
          */
         $search = Search::whereId($request->input('id'))->first();
+        SearchLogger::setSearchId($search->id);
 
         $this->integrityChecks($search);
 
         if ($search->isFinished() !== true) {
+	        SearchLogger::debug("Richiesta chiusura.");
             $this->finish($search, static::FINISH_STATUS_STOPPED);
 
             $user = $this->getAuthenticatedUser();
             // Ripristino la status disponibile
+	        SearchLogger::debug("Ripristino lo status dell'utente.");
             if ($user->status == User::STATUS_SEARCHING) {
                 $user->status = User::STATUS_AVAILABLE;
                 $user->save();
@@ -210,6 +219,8 @@ class SearchController extends Controller
          * @var Search $search
          */
         $search = Search::whereId($request->input('id'))->first();
+        SearchLogger::setSearchId($search->id);
+	    SearchLogger::debug("Sollecito di ricerca.");
 
         // Controlli di integrità
         $this->integrityChecks($search);
@@ -220,15 +231,18 @@ class SearchController extends Controller
             $lastFetchAtDiff = Carbon::now()->diffInSeconds($lastFetchAt);
             if ($lastFetchAtDiff > Search::KEEP_ALIVE_INTERVAL + Search::KEEP_ALIVE_TOLERANCE) {
 
+	            SearchLogger::debug("Sollecito valido.");
                 // E' un sollecito valido (il server era fermo, l'ultimo utente estratto non ha risposto), registro il timeout [TIMEOUT NON CONNESSO]
                 $this->userResponseTimeout($search);
 
                 // Continuo la ricerca
+	            SearchLogger::debug("Continuo la ricerca.");
                 $inProgress = $this->process($search);
 
                 $nextKeepAlive = Search::KEEP_ALIVE_INTERVAL + Search::KEEP_ALIVE_TOLERANCE;
             } else {
 
+	            SearchLogger::debug("Il server sta già continuando. Comunico solo tra quanto risollecitare");
                 // Il server sta proseguendo da solo, dico ad A tra quanti secondi deve risollecitare
                 $inProgress    = true;
                 $nextKeepAlive = Search::KEEP_ALIVE_INTERVAL - Carbon::now()->diffInSeconds($lastFetchAt) + Search::KEEP_ALIVE_TOLERANCE;
@@ -238,8 +252,11 @@ class SearchController extends Controller
             $search->keep_alive = Carbon::now()->toDateTimeString();
             $search->save();
 
+	        SearchLogger::debug("Next keep alive: $nextKeepAlive");
+
         } else {
             // E' già conclusa, è compito del server contattarmi. La risposta dovrebbe essere ricevuta a breve.
+	        SearchLogger::debug("Ricerca già conclusa. Tra poco verrà ricontatta l'app.");
             $inProgress = false;
         }
 
@@ -249,6 +266,7 @@ class SearchController extends Controller
 
             // Se la ricerca si è conclusa senza successo, riporto lo status dell'utente su disponibile
             if (!$search->success) {
+            	SearchLogger::debug("Ricerca non è andata a buon fine. Riporto lo status dell'utente su disponibile.");
                 if ($user->status == User::STATUS_SEARCHING) {
                     $user->status = User::STATUS_AVAILABLE;
                     $user->save();
@@ -264,13 +282,14 @@ class SearchController extends Controller
     }
 
 
-    /**
-     * Gestisce le risposte degli utenti in seguito ad una richista di abbraccio.
-     *
-     * @param Request $request
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
+	/**
+	 * Gestisce le risposte degli utenti in seguito ad una richista di abbraccio.
+	 *
+	 * @param Request $request
+	 *
+	 * @return \Illuminate\Http\JsonResponse
+	 * @throws ExceptionWithCustomCode
+	 */
     public function userResponse(Request $request)
     {
         $responseType = last(explode('.', $request->route()->getName()));
@@ -298,12 +317,18 @@ class SearchController extends Controller
          * @var Search $search
          */
         $search = Search::whereId($request->input('id'))->whereNull('finished_at')->firstOrFail();
+	    SearchLogger::debug("Risposta dell'utente {$user->id} per la ricerca. {$search->id}");
+	    SearchLogger::setSearchId($search->id);
 
         if ($user->id != $search->getLastFetchedUserId()) {
             // Non può rispondere a questa ricerca
             // TODO: Forse bisognerebbe prevedere qualcosa, soprattuto nell'accept. (oppure gestirlo nell'app?)
-            throw new ExceptionWithCustomCode("Non puoi rispondere a questa ricerca", ErrorCode::USER_NOT_AUTHORISED, 403);
+	        $error = "Non puoi rispondere a questa ricerca";
+	        SearchLogger::error($error);
+            throw new ExceptionWithCustomCode($error, ErrorCode::USER_NOT_AUTHORISED, 403);
         }
+
+	    SearchLogger::debug("Tipo risposta: $responseType");
 
         switch ($responseType) {
             case 'accept':
@@ -312,6 +337,7 @@ class SearchController extends Controller
                 $user->updatePosition($request->input('geo_latitude'), $request->input('geo_longitude'));
 
                 // Termino la ricerca
+	            SearchLogger::debug("Termino la ricerca con successo.");
                 $this->finish($search, self::FINISH_STATUS_SUCCESSFUL);
 
                 // salvo alcuni dati utili
@@ -319,6 +345,7 @@ class SearchController extends Controller
                 $search->save();
 
                 // Notifico l'utente che ha avviato la ricerca
+	            SearchLogger::debug("Notifico l'utente che ha avviato la ricerca.");
                 $this->notifyTheSearcher($search);
                 break;
 
@@ -326,6 +353,7 @@ class SearchController extends Controller
                 $this->userResponseReject($search, $user);
 
                 // Continuo la ricerca
+	            SearchLogger::debug("Continuo la ricerca.");
                 $this->process($search);
                 break;
 
@@ -333,6 +361,7 @@ class SearchController extends Controller
                 $this->userResponseNoResponse($search, $user);
 
                 // Continuo la ricerca
+	            SearchLogger::debug("Continuo la ricerca.");
                 $this->process($search);
                 break;
 
@@ -357,15 +386,19 @@ class SearchController extends Controller
     {
         // E' una ricerca conclusa?
         if ($search->isFinished()) {
+	        SearchLogger::debug("La ricerca è conclusa.");
             return false;
         }
 
         // Flush dell'ultimo fetch
+	    SearchLogger::debug("Flush dell'ultimo utente fetchato.");
         $search->flushLastFetch();
 
         // Verifico che la ricerca non abbia superato il massimo tempo consentito
-        $searchingFor = Carbon::now()->diffInSeconds(Carbon::createFromFormat('Y-m-d H:i:s', $search->created_at), true);
+	    SearchLogger::debug("Controllo se la ricerca non ha superato il massimo tempo consentito.");
+	    $searchingFor = Carbon::now()->diffInSeconds(Carbon::createFromFormat('Y-m-d H:i:s', $search->created_at), true);
         if ($searchingFor >= $search->max_duration) {
+	        SearchLogger::debug("Ricerca troppo lunga. La termino");
             // Termino la ricerca
             $this->finish($search, self::FINISH_STATUS_TIMEOUT);
 
@@ -374,20 +407,25 @@ class SearchController extends Controller
 
         $newListCreated = false;
         // Verifico se la lista è "troppo vecchia"
+	    SearchLogger::debug("Controllo se la lista di utenti è troppo vecchia...");
         $list         = $search->getLastList();
         $listDateDiff = Carbon::now()->diffInSeconds(Carbon::createFromFormat('Y-m-d H:i:s', $list->created_at));
         if ($listDateDiff > SearchList::OLD_LIST_AFTER_SECONDS) {
             // Creo una nuova lista
+	        SearchLogger::debug("Lista troppo vecchia. Ne creo una nuova");
             $search->createNewList();
             $newListCreated = true;
         }
 
         // Estraggo un utente
+	    SearchLogger::debug("Estraggo un utente.");
         $user = $search->fetchUser();
 
         if (empty($user)) { // Nessun utente trovato
+	        SearchLogger::debug("Nessun utente trovato nella lista.");
             // Se la lista non è stata appena creata, provo a crearne un'altra e a fare un nuovo fetch
             if ($newListCreated === false) {
+	            SearchLogger::debug("Creo una nuova lista. E provo ad estratte un nuovo utente.");
                 $search->createNewList();
                 $user = $search->fetchUser();
             }
@@ -400,6 +438,7 @@ class SearchController extends Controller
 
             return true;
         } else {
+	        SearchLogger::debug("Nessun utente trovato. Termino la ricerca");
             // Non ho trovato nessun utente, termino la ricerca
             $this->finish($search, static::FINISH_STATUS_NOT_SUCCESSFUL);
 
@@ -413,6 +452,7 @@ class SearchController extends Controller
      */
     protected function finish($search, $status)
     {
+	    SearchLogger::debug("Chiusura ricerca. Status $status");
         $search->finished_at = Carbon::now()->toDateTimeString();
 
         switch ($status) {
@@ -451,6 +491,7 @@ class SearchController extends Controller
      */
     private function contactFetchedUser(Search $search, User $user)
     {
+	    SearchLogger::debug("Contatto l'utente...");
         Notifier::send($user, 'search', 'fetched', [
             "search_id"    => $search->id, // Id della ricerca per il quale l'utente dovrà rispondere
             "wait_you_for" => Search::MAX_USER_RESPONSE_TIME, // Numero di secondi entro il quale l'utente può rispondere
@@ -537,6 +578,7 @@ class SearchController extends Controller
      */
     private function userResponseTimeout(Search $search)
     {
+	    SearchLogger::debug("Timeout non connesso.");
         $searchList = $search->getLastList();
         $user       = $search->getLastFetchedUser();
 
@@ -559,7 +601,9 @@ class SearchController extends Controller
      */
     private function registerUserTimeout(Search $search, User $user)
     {
-        $timeout = new UserSearchTimeout;
+    	SearchLogger::debug("Timeout dell'utente {$user->id}.");
+
+	    $timeout = new UserSearchTimeout;
 
         $timeout->timed_out_at = Carbon::now()->toDateTimeString();
         $timeout->search_id    = $search->id;
@@ -620,7 +664,9 @@ class SearchController extends Controller
     {
         $search = Search::whereUserId($user->id)->whereNull('finished_at')->first();
         if ($search instanceof Search) {
-            throw new UserCannotLaunchSearchException("Un'altra ricerca è in corso - Search id: {$search->id}", ErrorCode::UNKNOWN);
+	        $warn = "Un'altra ricerca è in corso - Search id: {$search->id}";
+	        SearchLogger::warning($warn);
+        	throw new UserCannotLaunchSearchException($warn, ErrorCode::UNKNOWN);
         }
 
         $hug = Hug::whereNull('closed_at')
@@ -635,7 +681,9 @@ class SearchController extends Controller
             ->first();
 
         if ($hug instanceof Hug) {
-            throw new UserCannotLaunchSearchException("E' coinvolto in un'altro abbraccio - Hug id: {$hug->id}");
+	        $warn = "E' coinvolto in un'altro abbraccio - Hug id: {$hug->id}";
+	        SearchLogger::warning($warn);
+            throw new UserCannotLaunchSearchException($warn);
         }
 
         $hugWithOutFeedBack = DB::table('hugs AS HUG')
@@ -672,7 +720,9 @@ class SearchController extends Controller
         ;
 
         if (!empty($hugWithOutFeedBack)) {
-            throw new UserCannotLaunchSearchException("Non ha lasciato il feedback per un abbraccio concluso - Hug id: {$hugWithOutFeedBack->id}");
+	        $warn = "Non ha lasciato il feedback per un abbraccio concluso - Hug id: {$hugWithOutFeedBack->id}";
+	        SearchLogger::warning($warn);
+            throw new UserCannotLaunchSearchException($warn);
         }
 
     }
