@@ -21,6 +21,7 @@ use Exception;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\JoinClause;
 use Illuminate\Http\Request;
+use App\Helpers\Loggers\SearchLogger;
 
 class SearchController extends Controller
 {
@@ -79,6 +80,8 @@ class SearchController extends Controller
         $search->geo_longitude = $data['geo_longitude'];
         $search->ip            = $request->ip();
         $search->save();
+
+	    SearchLogger::setSearchId($search->id);
 
         // Aggiorno posizione dell'utente
         $user->geo_last_update = new Carbon;
@@ -392,6 +395,7 @@ class SearchController extends Controller
 
         if ($user instanceof User) {
             // Utente trovato, contattiamolo
+	        SearchLogger::debug('Utente trovato: ' . $user->toJson());
             $this->contactFetchedUser($search, $user);
 
             return true;
