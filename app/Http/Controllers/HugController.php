@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 
 
 use App\Exceptions\ValidationException;
+use App\Helpers\Loggers\HugLogger;
 use App\Helpers\Notifier;
 use App\Models\Hug;
 use App\Models\Search;
@@ -45,6 +46,8 @@ class HugController extends Controller
 
         $user = $this->getAuthenticatedUser();
 
+        HugLogger::debug("Richiesta creazione abbraccio dall'utente {$user->id} per la ricerca {$request->get('search_id')}.");
+
         /**
          * @var Search $search
          */
@@ -56,19 +59,24 @@ class HugController extends Controller
             ->firstOrFail();
 
         // Tutto ok, creo abbraccio!
-        $hug                           = new Hug;
+	    HugLogger::debug("Ricerca associata: {$search->toJson()}");
+	    $hug                           = new Hug;
         $hug->search_id                = $search->id;
         $hug->user_seeker_id           = $user->id;
         $hug->user_sought_id           = $search->getFoundUserId();
         $hug->user_seeker_last_checkin = Carbon::now()->toDateTimeString();
 
         $hug->save();
+        HugLogger::setHugId($hug->id);
+	    HugLogger::debug("Istanza di abbraccio creata: {$hug->toJson()}");
 
         // Aggiorno lo status dell'utente
+	    HugLogger::debug("Aggiorno lo status dell'utente.");
         $user->status = User::STATUS_HUGGING;
         $user->save();
 
         // Notifico l'altro utente
+	    HugLogger::debug("Notifico l'utente trovato.");
         $this->alertSoughtUser($hug);
 
         // TODO: l'utente è "dentro" l'abbraccio!, l'app dovrebbe portarlo alla view
@@ -83,15 +91,16 @@ class HugController extends Controller
     }
 
 
-    /**
-     * Funzione richiamata da B nel caso in cui sta aspettando che arrivi la conferma che l'abbraccio è stato creato ma
-     * non riceve nulla entro un tot di secondi. Utilizza quindi questa funzione per richiedere se l'abbraccio è stato
-     * creato e se può entrare
-     *
-     * @param Request $request
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
+	/**
+	 * Funzione richiamata da B nel caso in cui sta aspettando che arrivi la conferma che l'abbraccio è stato creato ma
+	 * non riceve nulla entro un tot di secondi. Utilizza quindi questa funzione per richiedere se l'abbraccio è stato
+	 * creato e se può entrare
+	 *
+	 * @param Request $request
+	 *
+	 * @return \Illuminate\Http\JsonResponse
+	 * @throws ExceptionWithCustomCode
+	 */
     public function checkForHug(Request $request)
     {
         try {
@@ -106,6 +115,8 @@ class HugController extends Controller
 
         $user = $this->getAuthenticatedUser();
 
+	    HugLogger::debug(sprintf("Richiesta status abbraccio della ricerca %d da parte dell'utente %d", $request->get('search_id'), $user->id));
+
         /**
          * @var Hug    $hug
          * @var Search $search
@@ -114,6 +125,7 @@ class HugController extends Controller
         $search = Search::whereId($request->get('search_id'))->first();
 
         if (empty($hug)) {
+        	HugLogger::debug("Abbraccio non trovato. Riprova fra un pò.");
             // Riprova o lascia perdere!
             return parent::response([
                                         "hug"     => null,
@@ -121,18 +133,25 @@ class HugController extends Controller
                                     ]);
         } else {
             // L'abbraccio esiste.
+	        HugLogger::debug("Abbraccio trovato. Hug ID: {$hug->id}");
+	        HugLogger::setHugId($hug->id);
             if ($hug->user_sought_id != $user->id) {
+            	$warn = "Utente non autorizzato";
+	            HugLogger::warning($warn);
                 // Non è lui quello che è stato trovato
-                throw new ExceptionWithCustomCode("Utente non autorizzato", ErrorCode::USER_NOT_AUTHORISED, 403);
+                throw new ExceptionWithCustomCode($warn, ErrorCode::USER_NOT_AUTHORISED, 403);
             }
 
             if (!empty($hug->user_sought_last_checkin)) {
                 // Ha già fatto l'accesso
+	            $warn = "Hai già effettuato l'accesso";
+	            HugLogger::warning($warn);
                 //abort(400); // Forse dovremmo evitare errore in questo caso e semplicemente dirgli "guarda che già sei dentro"?
-                throw new ExceptionWithCustomCode("Hai già effettuato l'accesso", ErrorCode::INVALID_REQUEST, 400);
+                throw new ExceptionWithCustomCode($warn, ErrorCode::INVALID_REQUEST, 400);
             }
 
             // Ok può entrare
+	        HugLogger::debug("Entra nell'abbraccio");
             $this->join($hug, $user);
         }
 
@@ -166,12 +185,15 @@ class HugController extends Controller
         }
 
         $user = $this->getAuthenticatedUser();
+        HugLogger::debug(sprintf("Accesso abbraccio della ricerca %d da parte dell'utente %d", $request->get('search_id'), $user->id));
 
-        /**
+	    /**
          * @var Hug $hug
          */
         $hug = Hug::whereId($id)->whereSearchId($request->get('search_id'))->whereUserSoughtId($user->id)->first();
+		HugLogger::setHugId($hug->id);
 
+        HugLogger::debug("Entra nell'abbraccio");
         $this->join($hug, $user);
 
         return parent::response([]);
@@ -197,6 +219,7 @@ class HugController extends Controller
 
         $user = $this->getAuthenticatedUser();
         $user->updatePosition($request->input('geo_latitude'), $request->input('geo_longitude'));
+	    HugLogger::debug(sprintf("Refresh abbraccio da parte dell'utente %d", $user->id));
 
 
         /**
@@ -205,25 +228,30 @@ class HugController extends Controller
         $hug = Hug::whereId($id)
             ->where('closed_by', '<>', $user->id)->orWhereNull('closed_by')// Se ha chiuso lui l'abbraccio non ha senso che cerca di fare il refresh. Invece può capitare che l'alttro utente lo faccia e si accorge che l'altro ha chiuso l'abbraccio.
             ->firstOrFail();
+	    HugLogger::debug("Abbraccio trovato: {$hug->toJson()}");
+        HugLogger::setHugId($hug->id);
 
         // Eseguo il checkIn
         $this->checkIn($hug, $user);
 
         if (!empty($hug->closed_at)) {
-            return parent::response([], [
-
-            ]);
+        	$error = "Abbraccio concluso";
+	        HugLogger::error($error);
+            throw new ExceptionWithCustomCode($error);
         }
 
         //check whether the user that call the refresh is the seeker ot the sought of the hug
         if ($user->id == $hug->user_seeker_id) {
             $userToHug = User::whereId($hug->user_sought_id)->first();
+	        HugLogger::debug("L'utente è il seeker. L'utente trovato è {$userToHug->id}");
         } else {
             $userToHug = User::whereId($hug->user_seeker_id)->first();
+	        HugLogger::debug("L'utente è il sought. L'utente trovato è {$userToHug->id}");
         }
 
 
         if (($timedOutUserId = $this->otherUserIsAlive($hug, $user)) !== true) {
+	        HugLogger::warning("L'altro utente non ha inviato più risposte entro il tempo prestabilito. Chiudo l'abbraccio");
             // l'altro utente non ha inviato il check in entro il massimo ritardo consentito. Chiudo l'abbraccio dichiarando il timeout dell'altro utente
             $hug->close($user, $timedOutUserId);
         }
@@ -255,7 +283,9 @@ class HugController extends Controller
     {
         $user = $this->getAuthenticatedUser();
 
-        /**
+	    HugLogger::debug(sprintf("Richiesta chiusura abbraccio %d da parte dell'utente %d", $id, $user->id));
+
+        /*
          * @var Hug $hug
          */
         $hug = Hug::whereId($id)->where(function ($query) use ($user) {
@@ -267,8 +297,11 @@ class HugController extends Controller
                 ->orWhere('user_sought_id', '=', $user->id);
         })->first();
 
+	    HugLogger::setHugId($hug->id);
+
         if (empty($hug->closed_at)) {
             $hug->close($user);
+            HugLogger::debug("Abbraccio chiuso.");
         }
 
         return parent::response([
@@ -288,6 +321,7 @@ class HugController extends Controller
     {
         $user = $this->getAuthenticatedUser();
 
+	    HugLogger::debug(sprintf("Richiesta dati abbraccio %d da parte dell'utente %d", $id, $user->id));
         /**
          * @var Hug $hug
          */
@@ -323,6 +357,8 @@ class HugController extends Controller
         ]);
 
         $hugID = $request->input('hug_id');
+
+	    HugLogger::debug(sprintf("Richiesta 'Who are you' per l'abbraccio %d da parte dell'utente %d", $hugID, $user->id));
 
         /**
          * @var Hug $hug
@@ -364,14 +400,15 @@ class HugController extends Controller
     }
 
 
-    /**
-     * Permette all'utente di lasciare un feedback sull'abbraccio.
-     *
-     * @param Request $request
-     * @param         $id
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
+	/**
+	 * Permette all'utente di lasciare un feedback sull'abbraccio.
+	 *
+	 * @param Request $request
+	 * @param         $id
+	 *
+	 * @return \Illuminate\Http\JsonResponse
+	 * @throws ExceptionWithCustomCode
+	 */
     public function setFeedback(Request $request, $id)
     {
         try {
