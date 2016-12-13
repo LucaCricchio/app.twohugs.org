@@ -215,15 +215,12 @@
                 data: $advancedTestForm.serialize(),
                 context: document.body
             }).done(function (response) {
-                if (response.success === true) {
+                //if (response.success === true) {
                     $this.addLog("Login del launcher effettuato\n\tToken: " + response.data.token);
                     $this.tokens.launcher = response.data.token;
 
 
                     $this._launchSearch();
-                } else {
-                    throw "Impossibile autenticare il launcher";
-                }
             }).fail(function (response) {
                 $this.addLog("Request: " + JSON.stringify(request, null, "\t") + "\n\n__________\nResponse: Failed, Status " + response.status + "");
                 throw "Impossibile autenticare il launcher";
@@ -242,7 +239,6 @@
                     request.setRequestHeader("Authorization", 'Bearer ' + $this.tokens.launcher);
                 }
             }).done(function (response) {
-                if (response.success === true) {
                     $this.addLog("Ricerca del launcher avviata\n\tsearch_id: " + response.data.search.id + "\n\tinProgress: " + response.data.inProgress);
 
                     $this.searchId = response.data.search.id;
@@ -259,9 +255,6 @@
                     } else {
                         $this.addLog("E' già terminata senza successo");
                     }
-                } else {
-                    throw "Impossibile avviare la ricerca da parte del launcher";
-                }
             }).fail(function (response) {
                 $this.addLog("Request: " + JSON.stringify(request, null, "\t") + "\n\n__________\nResponse: Failed, Status " + response.status + "");
                 throw "Impossibile avviare la ricerca da parte del launcher";
@@ -306,7 +299,6 @@
                     request.setRequestHeader("Authorization", 'Bearer ' + $this.tokens.launcher);
                 }
             }).done(function (response) {
-                if (response.success === true) {
                     $this.addLog("Sollecito inviato\n\tinProgress: " + response.data.inProgress);
 
                     if (response.data.inProgress) {
@@ -327,9 +319,6 @@
                         }
                         $this.addLog("__________\nResponse:\n" + JSON.stringify(data, null, "\t"));
                     }
-                } else {
-                    throw "Impossibile continuare la ricerca da parte del launcher";
-                }
             }).fail(function (response) {
                 $this.addLog("Request: " + JSON.stringify(request, null, "\t") + "\n\n__________\nResponse: Failed, Status " + response.status + "");
                 throw "Impossibile continuare la ricerca da parte del launcher";
@@ -352,7 +341,6 @@
                     data: {'email': email, 'password': password},
                     context: document.body
                 }).done(function (response) {
-                    if (response.success === true) {
                         $this.addLog("Fetch dell'utente " + userId + "effettuato\n\tToken: " + response.data.token);
                         var token = response.data.token;
 
@@ -366,9 +354,6 @@
                             $this.lastFetchedUser.next++;
                         }
 
-                    } else {
-                        throw "Impossibile effettuare il fetch dell'utente " + userId;
-                    }
                 }).fail(function (response) {
                     $this.addLog("Request: " + JSON.stringify(request, null, "\t") + "\n\n__________\nResponse: Failed, Status " + response.status + "");
                     throw "Impossibile effettuare il fetch dell'utente " + userId;
