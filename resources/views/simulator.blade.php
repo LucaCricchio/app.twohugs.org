@@ -21,7 +21,7 @@
                 <div class="form-group">
                     <label class="sr-only" for="exampleInputPassword3">Password</label>
                     <input type="text" name="password" class="form-control" id="exampleInputPassword3"
-                           placeholder="Password" value="ciao">
+                           placeholder="Password" value="password">
                 </div>
                 <button type="button" class="btn btn-primary"
                         onclick="request('/auth/login', jQuery(this).closest('form').serializeObject());">
@@ -48,13 +48,13 @@
                             </div>
                             <div class="form-group">
                                 <label class="sr-only" for="geoLocalization_lat_{{$i}}">Latitudine</label>
-                                <input type="text" name="geoLocalization[latitude]" class="form-control"
+                                <input type="text" name="geo_latitude" class="form-control"
                                        id="geoLocalization_lat_{{$i}}"
                                        placeholder="Latitudine" value="12.4523232">
                             </div>
                             <div class="form-group">
                                 <label class="sr-only" for="geoLocalization_lng_{{$i}}">Longitudine</label>
-                                <input type="text" name="geoLocalization[longitude]" class="form-control"
+                                <input type="text" name="geo_longitude" class="form-control"
                                        id="geoLocalization_lng_{{$i}}"
                                        placeholder="Longitudine" value="4.232234">
                             </div>
@@ -123,7 +123,7 @@
                     <div class="form-group">
                         <label class="sr-only" for="adv-tester-password">Password</label>
                         <input type="text" name="password" class="form-control" id="adv-tester-password"
-                               placeholder="Password" value="ciao">
+                               placeholder="Password" value="password">
                     </div>
                     <button type="button" class="btn btn-primary" onclick="var a = new AdvancedTest(); a.start();">
                         START
@@ -234,7 +234,7 @@
             var $this = this;
             $.ajax({
                 url: '/search/begin',
-                data: {'geoLocalization': {'latitude': 12.35325, 'longitude': 4.121212}},
+                data: {'geo_latitude': 12.35325, 'geo_longitude': 4.121212},
                 method: 'POST',
                 context: document.body,
 
@@ -344,7 +344,7 @@
                 context: document.body
 
             }).done(function (response) {
-                var email = response.email, password = 'ciao';
+                var email = response.email, password = 'password';
 
                 $.ajax({
                     url: '/auth/login',
