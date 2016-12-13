@@ -65,7 +65,11 @@ class Search extends Model
 
     public $timestamps = false;
 
-    protected $extraRegistry;
+	protected $attributes = [
+		'extra' => '{}',
+	];
+
+	protected $extraRegistry;
 
     public function save(array $options = [])
     {
@@ -75,6 +79,8 @@ class Search extends Model
 
         if ($this->extraRegistry instanceof Registry) {
             $this->extra = $this->extraRegistry->toString();
+        } else {
+        	$this->extra = '{}';
         }
 
         return parent::save($options);
