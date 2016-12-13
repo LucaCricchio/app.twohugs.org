@@ -142,7 +142,7 @@ class Search extends Model
                 ->join('search_list_users', 'search_lists.id', '=', 'search_list_users.search_list_id')
                 ->where('search_lists.search_id', '=', $this->id)
                 ->where('search_list_users.response_type', '=', SearchListUser::RESPONSE_TYPE_REJECTED)
-                ->lists('search_list_users.user_id');
+                ->pluck('search_list_users.user_id');
 
         return $ids;
     }
@@ -154,7 +154,7 @@ class Search extends Model
                 ->join('search_list_users', 'search_lists.id', '=', 'search_list_users.search_list_id')
                 ->where('search_lists.search_id', '=', $this->id)
                 ->whereNotNull('search_list_users.fetched_at')
-                ->lists('search_list_users.user_id');
+                ->pluck('search_list_users.user_id');
 
         return $ids;
     }
