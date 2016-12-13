@@ -666,7 +666,7 @@ class SearchController extends Controller
         if ($search instanceof Search) {
 	        $warn = "Un'altra ricerca è in corso - Search id: {$search->id}";
 	        SearchLogger::warning($warn);
-        	throw new UserCannotLaunchSearchException($warn, ErrorCode::UNKNOWN);
+        	throw new UserCannotLaunchSearchException($warn, ErrorCode::PREVIOUS_SEARCH_IN_PROGRESS);
         }
 
         $hug = Hug::whereNull('closed_at')
