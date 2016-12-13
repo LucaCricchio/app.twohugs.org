@@ -51,45 +51,26 @@ abstract class Controller extends BaseController
      * @return \App\Models\User|null
      * @throws Exception
      */
-    public function getAuthenticatedUser()
-    {
-        try {
-            if (!$user = JWTAuth::parseToken()->authenticate()) {
-                // Utente non trovato
-                throw new Exception("User not found");
-            }
+	public function getAuthenticatedUser()
+	{
+		if ( ! $user = JWTAuth::parseToken()->authenticate()) {
+			// Utente non trovato
+			throw new Exception("User not found");
+		}
 
-            return $user;
-        } catch (TokenExpiredException $e) {
-            // Token Scaduto
-            return $this->response([], [
-                "token expired",
-            ]);
+		return $user;
+	}
 
-        } catch (TokenInvalidException $e) {
-            // Token invalido
-            return $this->response([], [
-                "invalid",
-            ]);
-
-        } catch (JWTException $e) {
-            // Token non presente
-            return $this->response([], [
-                "token not found",
-            ]);
-        }
-
-        return null;
-    }
-
-    /**
-     * Conforme per quanto possibile a http://jsonapi.org/format/
-     *
-     * @param       $data
-     * @param array $errors
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
+	/**
+	 * Conforme per quanto possibile a http://jsonapi.org/format/
+	 *
+	 * @param     $data
+	 * @param int $statusCode
+	 *
+	 * @return \Illuminate\Http\JsonResponse
+	 * @internal param array $errors
+	 *
+	 */
     protected function response($data, $statusCode = 200)
     {
         $response = [
