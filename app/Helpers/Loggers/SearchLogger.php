@@ -9,7 +9,7 @@
 namespace App\Helpers\Loggers;
 
 /**
- * Class AsyncTimestampLogger
+ * Class SearchLogger
  *
  * @package App\Helpers\Loggers
  */
