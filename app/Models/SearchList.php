@@ -64,7 +64,12 @@ class SearchList extends Model
         $users =
             DB::table('users AS USER')
                 ->leftJoin('user_search_timeouts AS USER_TIMEOUT', 'USER_TIMEOUT.user_id', '=', 'USER.id')
-                ->selectRaw("USER.id, haversine(USER.geo_latitude, USER.geo_longitude, 10, 20) AS distance, MAX(USER_TIMEOUT.timed_out_at) AS last_timeout")
+                ->selectRaw(
+                	implode(", ", [
+                	    "USER.id",
+	                    sprintf("haversine(USER.geo_latitude, USER.geo_longitude, %s, %s) AS distance", $search->geo_latitude, $search->geo_longitude),
+	                    "MAX(USER_TIMEOUT.timed_out_at) AS last_timeout"
+	                ]))
                 ->where('USER.geo_last_update', '>', DB::getPdo()->quote($lastUpdate))
                 ->whereRaw('haversine(USER.geo_latitude, USER.geo_longitude, 10, 20) <= ' . (float)$search->max_distance)// TODO: La distanza bisogna passarla in km
                 ->whereNotIn('USER.id', $usersWhoRefused)
@@ -81,7 +86,7 @@ class SearchList extends Model
             $tuples = [];
             foreach ($users as $i => $user) {
                 /**
-                 * @var stdClass $user
+                 * @var \stdClass $user
                  */
                 $tuples [] = [
                     'search_list_id' => $this->id,
