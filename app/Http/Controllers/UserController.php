@@ -78,7 +78,6 @@ class UserController extends Controller
 
     public function updatePosition(Request $request)
     {
-        try {
             $this->validate($request, [
                 'geo_latitude'  => 'required|regex:/^(-)?[0-9]{1,3}\.[0-9]{1,7}+$/',
                 'geo_longitude' => 'required|regex:/^(-)?[0-9]{1,3}\.[0-9]{1,7}+$/'
@@ -88,13 +87,7 @@ class UserController extends Controller
             $user->geo_longitude = $request->input('geo_longitude');
             $user->geo_last_update = Carbon::now()->toDateTimeString();
             $user->save();
-        } catch(ValidationException $e) {
-            $errors = $e->getErrors();
-            return parent::response([
-                'validation' => false,
-                'errors'     => $errors,
-            ]);
-        }
+
         return parent::response([
             'success'    => true,
         ]);
