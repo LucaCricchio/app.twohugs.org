@@ -33,6 +33,9 @@ Route::group(['prefix' => 'user'], function () {
     Route::get('send-notification/{id}', 'VipController@sendNotification');
     Route::get('{id}', 'UserController@get');
 
+    //aggiorna la posizione dell'utente
+    Route::post('updatePosition', 'UserController@updatePosition');
+
 
 });
 
@@ -69,8 +72,8 @@ Route::group(['prefix' => 'search', 'as' => 'search.'], function () {
 /** HUG */
 Route::group(['prefix' => 'hugs', 'as' => 'hugs.'], function () {
 
-    Route::get('', 'HugsController@getList')->name('getList');
-    Route::get('{id}', 'HugController@get')->name('getHug');
+    Route::post('', 'HugsController@getList')->name('getList'); //todo: da get a post, temporaneo per facilitare Andrea
+    Route::post('{id}', 'HugController@get')->name('getHug'); //todo: da get a post, temporaneo per facilitare Andrea
 
     Route::post('create', 'HugController@createHug')->name('create');
     Route::post('{id}/join', 'HugController@joinHug')->name('join');

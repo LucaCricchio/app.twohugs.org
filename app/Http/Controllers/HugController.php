@@ -34,15 +34,11 @@ class HugController extends Controller
      */
     public function createHug(Request $request)
     {
-        try {
-            $this->validate($request, [
-                'search_id' => 'required|numeric|exists:searches,id',
-            ]);
-        } catch (ValidationException $e) {
-            $errors = $e->getErrors();
 
-            return parent::response([], $errors);
-        }
+        $this->validate($request, [
+            'search_id' => 'required|numeric|exists:searches,id',
+        ]);
+
 
         $user = $this->getAuthenticatedUser();
 
@@ -103,15 +99,11 @@ class HugController extends Controller
 	 */
     public function checkForHug(Request $request)
     {
-        try {
-            $this->validate($request, [
-                'search_id' => 'required|numeric|exists:searches,id',
-            ]);
-        } catch (ValidationException $e) {
-            $errors = $e->getErrors();
 
-            return parent::response([], $errors);
-        }
+        $this->validate($request, [
+            'search_id' => 'required|numeric|exists:searches,id',
+        ]);
+
 
         $user = $this->getAuthenticatedUser();
 
@@ -174,15 +166,11 @@ class HugController extends Controller
      */
     public function joinHug(Request $request, $id)
     {
-        try {
-            $this->validate($request, [
-                'search_id' => 'required|numeric|exists:searches,id',
-            ]);
-        } catch (ValidationException $e) {
-            $errors = $e->getErrors();
 
-            return parent::response([], $errors);
-        }
+        $this->validate($request, [
+            'search_id' => 'required|numeric|exists:searches,id',
+        ]);
+
 
         $user = $this->getAuthenticatedUser();
         HugLogger::debug(sprintf("Accesso abbraccio della ricerca %d da parte dell'utente %d", $request->get('search_id'), $user->id));
@@ -411,15 +399,11 @@ class HugController extends Controller
 	 */
     public function setFeedback(Request $request, $id)
     {
-        try {
-            $this->validate($request, [
-                'feedback' => 'required|numeric|hug.feedback',
-            ]);
-        } catch (ValidationException $e) {
-            $errors = $e->getErrors();
 
-            return parent::response([], $errors);
-        }
+        $this->validate($request, [
+            'feedback' => 'required|numeric|hug.feedback',
+        ]);
+
 
         $user = $this->getAuthenticatedUser();
 
