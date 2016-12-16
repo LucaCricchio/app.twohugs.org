@@ -50,10 +50,10 @@ class SearchController extends Controller
     public function begin(Request $request)
     {
 
-            $this->validate($request, [
-                'geo_latitude'  => 'required|regex:/^(-)?[0-9]{1,3}\.[0-9]{1,7}+$/',
-                'geo_longitude' => 'required|regex:/^(-)?[0-9]{1,3}\.[0-9]{1,7}+$/',
-            ]);
+        $this->validate($request, [
+            'geo_latitude' => 'required|regex:/^(-)?[0-9]{1,3}\.[0-9]{1,7}+$/',
+            'geo_longitude' => 'required|regex:/^(-)?[0-9]{1,3}\.[0-9]{1,7}+$/',
+        ]);
 
 
         $data = $request->only([
@@ -135,15 +135,10 @@ class SearchController extends Controller
      */
     public function stop(Request $request)
     {
-        try {
-            $this->validate($request, [
-                'id' => 'required|numeric|exists:searches,id',
-            ]);
-        } catch (ValidationException $e) {
-            $errors = $e->getErrors();
 
-            return parent::response([], $errors);
-        }
+        $this->validate($request, [
+            'id' => 'required|numeric|exists:searches,id',
+        ]);
 
         /**
          * @var Search $search
@@ -200,17 +195,13 @@ class SearchController extends Controller
      */
     public function proceed(Request $request)
     {
-        try {
-            $this->validate($request, [
-                'id' => 'required|numeric|exists:searches,id',
-                'geo_latitude'  => 'sometimes|regex:/^(-)?[0-9]{1,3}\.[0-9]{1,7}+$/',
-                'geo_longitude' => 'sometimes|regex:/^(-)?[0-9]{1,3}\.[0-9]{1,7}+$/'
-            ]);
-        } catch (ValidationException $e) {
-            $errors = $e->getErrors();
 
-            return parent::response([], $errors);
-        }
+        $this->validate($request, [
+            'id' => 'required|numeric|exists:searches,id',
+            'geo_latitude' => 'sometimes|regex:/^(-)?[0-9]{1,3}\.[0-9]{1,7}+$/',
+            'geo_longitude' => 'sometimes|regex:/^(-)?[0-9]{1,3}\.[0-9]{1,7}+$/'
+        ]);
+
 
         $user = $this->getAuthenticatedUser();
         $user->updatePosition($request->input('geo_latitude'), $request->input('geo_longitude'));
@@ -299,17 +290,13 @@ class SearchController extends Controller
             throw new ExceptionWithCustomCode("Risposta non valida", ErrorCode::INVALID_USER_RESPONSE, 404);
         }
 
-        try {
-            $this->validate($request, [
-                'id' => 'required|numeric|exists:searches,id',
-                'geo_latitude'  => 'sometimes|regex:/^(-)?[0-9]{1,3}\.[0-9]{1,7}+$/',
-                'geo_longitude' => 'sometimes|regex:/^(-)?[0-9]{1,3}\.[0-9]{1,7}+$/'
-            ]);
-        } catch (ValidationException $e) {
-            $errors = $e->getErrors();
 
-            return parent::response([], $errors);
-        }
+        $this->validate($request, [
+            'id' => 'required|numeric|exists:searches,id',
+            'geo_latitude' => 'sometimes|regex:/^(-)?[0-9]{1,3}\.[0-9]{1,7}+$/',
+            'geo_longitude' => 'sometimes|regex:/^(-)?[0-9]{1,3}\.[0-9]{1,7}+$/'
+        ]);
+
 
         $user = $this->getAuthenticatedUser();
 
