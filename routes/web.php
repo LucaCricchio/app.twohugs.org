@@ -88,6 +88,12 @@ Route::group(['prefix' => 'hugs', 'as' => 'hugs.'], function () {
 
 });
 
+Route::group(['prefix' => 'chats', 'as' => 'chats.'], function() {
+    Route::get('/', 'ChatController@getChatForUser');
+    Route::get('{chat}', 'ChatController@getChatMessages');
+    Route::post('{chat}/send', 'ChatController@sendMessage');
+});
+
 /** VIP */
 Route::group(['prefix' => 'vip'], function () {
     Route::get('monthList', 'VipController@getMonthVipList');
