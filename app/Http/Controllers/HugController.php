@@ -37,10 +37,13 @@ class HugController extends Controller
 
         $this->validate($request, [
             'search_id' => 'required|numeric|exists:searches,id',
+            'geo_latitude' => 'sometimes|regex:/^(-)?[0-9]{1,3}\.[0-9]{1,7}+$/',
+            'geo_longitude' => 'sometimes|regex:/^(-)?[0-9]{1,3}\.[0-9]{1,7}+$/'
         ]);
 
 
         $user = $this->getAuthenticatedUser();
+        $user->updatePosition($request->input('geo_latitude'), $request->input('geo_longitude'));
 
         HugLogger::debug("Richiesta creazione abbraccio dall'utente {$user->id} per la ricerca {$request->get('search_id')}.");
 
