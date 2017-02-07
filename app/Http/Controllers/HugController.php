@@ -150,8 +150,12 @@ class HugController extends Controller
             $this->join($hug, $user);
         }
 
+        $seekerUser = User::whereId($hug->user_seeker_id)->first();
+
         return parent::response([
                                     "hug" => $hug,
+                                    "seeker_user_geo_latitude" => $seekerUser->geo_latitude,
+                                    "seeker_user_geo_longitude" => $seekerUser->geo_latitude,
 
                                 ]);
     }
@@ -547,11 +551,14 @@ class HugController extends Controller
     private function alertSoughtUser(Hug $hug)
     {
         $soughtUser = User::whereId($hug->user_sought_id)->first();
+        $seekerUser = User::whereId($hug->user_seeker_id)->first();
 
         Notifier::send($soughtUser, 'hug', 'created', [
             'hug_id'     => $hug->id,
             'search_id'  => $hug->search_id,
             'created_at' => $hug->created_at,
+            "seeker_user_geo_latitude" => $seekerUser->geo_latitude,
+            "seeker_user_geo_longitude" => $seekerUser->geo_latitude,
         ]);
     }
 
