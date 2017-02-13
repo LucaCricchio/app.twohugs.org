@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Carbon\Carbon;
 use Validator;
+use Carbon\Carbon;
 use App\Models\Chat;
 use App\Models\ChatMessage;
 use Illuminate\Http\Request;
@@ -13,6 +13,15 @@ class ChatController extends Controller {
     public function getChatForUser() {
         $currentUser = $this->getAuthenticatedUser();
         $chats = Chat::getFromUser($currentUser);
+        return parent::response([
+            'success' => true,
+            'chats' => $chats
+        ]);
+    }
+
+    public function getChatMessagesWithLastMessage() {
+        $currentUser = $this->getAuthenticatedUser();
+        $chats = Chat::getFromUserWithLastMessages($currentUser);
         return parent::response([
             'success' => true,
             'chats' => $chats
