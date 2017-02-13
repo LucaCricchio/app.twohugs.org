@@ -34,11 +34,11 @@ class Chat extends Model {
      */
     public static function getFromUserWithLastMessages(User $user) {
         return DB::select("
-            SELECT id, user, chat_id, message, newer 
+            SELECT id, user, chat_id, message, photo, newer 
             FROM chats INNER JOIN (
-                SELECT chat_id, message, MAX(created_at) AS newer 
+                SELECT chat_id, message, photo, MAX(created_at) AS newer 
                 FROM (
-                    SELECT chat_id, message, created_at
+                    SELECT chat_id, message, photo, created_at
                     FROM chat_messages
                     ORDER BY created_at DESC
                 ) AS temp_messages 
