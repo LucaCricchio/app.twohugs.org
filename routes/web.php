@@ -16,6 +16,7 @@ Route::get('/', function(){
     return view('welcome');
 });
 
+
 /** USER */
 Route::group(['prefix' => 'user'], function () {
 
@@ -74,6 +75,8 @@ Route::group(['prefix' => 'hugs', 'as' => 'hugs.'], function () {
 
     Route::post('', 'HugsController@getList')->name('getList'); //todo: da get a post, temporaneo per facilitare Andrea
     Route::post('{id}', 'HugController@get')->name('getHug'); //todo: da get a post, temporaneo per facilitare Andrea
+
+    Route::post('checkForHug', 'HugController@checkForHug');
 
     Route::post('create', 'HugController@createHug')->name('create');
     Route::post('{id}/join', 'HugController@joinHug')->name('join');
