@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Carbon\Carbon;
+use DB;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -25,6 +26,26 @@ class Chat extends Model {
         return Chat::where('sender_id', '=', $user->id)
                     ->orWhere('receiver_id', '=', $user->id)
                     ->get();
+    }
+
+    /**
+     * Get an array with chats and latest messages.
+     * @return array
+     */
+    public static function getFromUserWithLastMessages(User $user) {
+        return DB::select("
+            SELECT id, sender_id, receiver_id, message_id, chat_id, message, photo, newer 
+            FROM chats INNER JOIN (
+                SELECT message_id, chat_id, message, photo, MAX(created_at) AS newer 
+                FROM (
+                    SELECT id AS message_id, chat_id, message, photo, created_at
+                    FROM chat_messages
+                    ORDER BY created_at DESC
+                ) AS temp_messages 
+            ) as temp_chat_messages
+            WHERE sender_id='{$user->id}' OR receiver_id='{$user->id}'
+            GROUP BY chat_id
+        ");
     }
 
     /**
