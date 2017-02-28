@@ -142,7 +142,17 @@ class HugController extends Controller
 	            $warn = "Hai già effettuato l'accesso";
 	            HugLogger::warning($warn);
                 //abort(400); // Forse dovremmo evitare errore in questo caso e semplicemente dirgli "guarda che già sei dentro"?
-                throw new ExceptionWithCustomCode($warn, ErrorCode::INVALID_REQUEST, 400);
+                //throw new ExceptionWithCustomCode($warn, ErrorCode::INVALID_REQUEST, 400);
+                //LK91: anzichè generare l'errore ritorno l'abbraccio, la posizione ed un alert
+                $seekerUser = User::whereId($hug->user_seeker_id)->first();
+
+                return parent::response([
+                    "hug" => $hug,
+                    "seeker_user_geo_latitude" => $seekerUser->geo_latitude,
+                    "seeker_user_geo_longitude" => $seekerUser->geo_latitude,
+                    "already_joined"            => true,
+
+                ]);
             }
 
             // Ok può entrare
