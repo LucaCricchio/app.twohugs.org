@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Exceptions\ValidationException;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Input;
 use Validator;
 
 class ProfileController extends Controller
@@ -52,6 +54,34 @@ class ProfileController extends Controller
             'success'    => true,
             'user'       => $user,
         ]);
+    }
+
+    //imposta l'avatar di un utente
+    public function setAvatar(Request $request){
+
+        $user = $this->getAuthenticatedUser();
+
+        $this->validate($request, [
+            'avatar' => 'required',
+        ]);
+
+        $image = $request->avatar;
+
+        $image->store('/users/'.$user->id.'/avatar/');
+
+        return parent::response([
+            'success'    => true,
+        ]);
+    }
+
+    //restituisce l'immagine del profilo di un utente
+    public function getAvatar()
+    {
+        $user = $this->getAuthenticatedUser();
+
+        $avatar =   \Storage::disk('local')->getDriver()->getAdapter()->getPathPrefix().'/users/'.$user->id.'/avatar/'.$user->avatar;
+
+        return response()->download($avatar);
     }
 
 }

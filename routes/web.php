@@ -17,6 +17,7 @@ Route::get('/', function(){
 });
 
 
+
 /** USER */
 Route::group(['prefix' => 'user'], function () {
 
@@ -36,6 +37,10 @@ Route::group(['prefix' => 'user'], function () {
 
     //aggiorna la posizione dell'utente
     Route::post('updatePosition', 'UserController@updatePosition');
+
+    //test
+    Route::get('avatar', 'ProfileController@getAvatar');
+    Route::post('avatar', 'ProfileController@setAvatar');
 
 
 });
