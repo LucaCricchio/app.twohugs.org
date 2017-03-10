@@ -3,13 +3,18 @@
 namespace App\Http\Controllers;
 
 use Validator;
-use Carbon\Carbon;
+use App\Models\Hug;
 use App\Models\Chat;
 use App\Models\ChatMessage;
+use App\Exceptions\ExceptionWithCustomCode;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class ChatController extends Controller {
+    const INVALID_HUG_ID = -3001;
+    const USER_STILL_LOCKED = -3002;
+
     public function getChatForUser() {
         $currentUser = $this->getAuthenticatedUser();
         $chats = Chat::getFromUser($currentUser);
@@ -39,6 +44,53 @@ class ChatController extends Controller {
             'chat' => $chat,
             'messages' => $chat->getMessages($from)
         ]);
+    }
+
+    /**
+     * Create a new chat between tho unlocked users.
+     * Warning: chat can be created just if users are really unlocked.
+     * @param Request $request Request data
+     * @return \Illuminate\Http\JsonResponse Chat information
+     * @throws ExceptionWithCustomCode If users not unlocked or not valid data given in
+     */
+    public function newChat(Request $request) {
+        $hugId = $request->get("hug", false);
+        if (is_integer($hugId) && ($hug = Hug::find($hugId))) {
+            $user = parent::getAuthenticatedUser();
+            // Check if users unlocked their profile
+            if ($hug->user_seeker_id == $user->id || $hug->user_sought_id == $user->id) {
+                if ($hug->user_seeker_who_are_you_request != null && $hug->user_sought_who_are_you_request != null) {
+                    $chat = new Chat();
+                    $chat->receiver_id =
+                        $hug->user_seeker_id == $user->id ?
+                            $hug->user_sought_id :
+                            $hug->user_seeker_id;
+                    $chat->sender_id = $user->id;
+                    $chat->save();
+
+                    return parent::response(
+                        [
+                            'chat' => $chat
+                        ],
+                        Response::HTTP_CREATED
+                    );
+                }
+                // Still null ?
+                throw new ExceptionWithCustomCode(
+                    "Users still locked",
+                    self::USER_STILL_LOCKED,
+                    Response::HTTP_EXPECTATION_FAILED,
+                    null
+                );
+            }
+        }
+        // Hug not found or id from another hug ?
+        throw new ExceptionWithCustomCode(
+            "Invalid hug id",
+            self::INVALID_HUG_ID,
+            Response::HTTP_NOT_ACCEPTABLE,
+            null
+        );
     }
 
     public function sendMessage(Request $request, Chat $chat) {

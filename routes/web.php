@@ -98,6 +98,7 @@ Route::group(['prefix' => 'hugs', 'as' => 'hugs.'], function () {
 
 Route::group(['prefix' => 'chats', 'as' => 'chats.'], function() {
     Route::get('/', 'ChatController@getChatForUser');
+    Route::post('/', 'ChatController@newChat');
     Route::get('/withMessages', 'ChatController@getChatMessagesWithLastMessage');
     Route::get('{chat}', 'ChatController@getChatMessages');
     Route::post('{chat}/send', 'ChatController@sendMessage');
