@@ -14,6 +14,8 @@ use Symfony\Component\HttpFoundation\Response;
 class ChatController extends Controller {
     const INVALID_HUG_ID = -3001;
     const USER_STILL_LOCKED = -3002;
+    const INVALID_MESSAGE = -3003;
+    const NOT_YOUR_CHAT = -3004;
 
     public function getChatForUser() {
         $currentUser = $this->getAuthenticatedUser();
@@ -93,6 +95,13 @@ class ChatController extends Controller {
         );
     }
 
+    /**
+     * Check if a message is valid, then save it as sent.
+     * @param Request $request "Message container"
+     * @param Chat $chat Chat where to send message
+     * @return \Illuminate\Http\JsonResponse
+     * @throws ExceptionWithCustomCode
+     */
     public function sendMessage(Request $request, Chat $chat) {
         $data = $request->only('message');
         $validator = Validator::make($data, [
@@ -100,22 +109,30 @@ class ChatController extends Controller {
         ]);
         if($validator->passes()) {
             $current = $this->getAuthenticatedUser();
+
+            if ($chat->receiver_id != $current->id && $chat->sender_id != $current->id)
+                throw new ExceptionWithCustomCode(
+                    "Not your chat!",
+                    self::NOT_YOUR_CHAT,
+                    Response::HTTP_NOT_ACCEPTABLE,
+                    null
+                );
+
             $message = new ChatMessage();
             $message->message = $data['message'];
             $message->chat_id = $chat->id;
             $message->user_id = $current->id;
             $message->save();
+
             return parent::response([
-                'success' => true,
-                'chat_id' => $chat->id,
-                'message' => $message
+                'success' => true
             ]);
         } else
-            return parent::response([
-                'success' => false,
-                'errors' => [
-                    'message' => $validator->errors()->get('message')
-                ]
-            ], Response::HTTP_NOT_ACCEPTABLE);
+            throw new ExceptionWithCustomCode(
+                $validator->errors()->get('message'),
+                self::INVALID_MESSAGE,
+                Response::HTTP_NOT_ACCEPTABLE,
+                null
+            );
     }
 }
