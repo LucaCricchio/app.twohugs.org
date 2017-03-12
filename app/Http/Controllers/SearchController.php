@@ -293,8 +293,8 @@ class SearchController extends Controller
 
         $this->validate($request, [
             'id' => 'required|numeric|exists:searches,id',
-            'geo_latitude' => 'sometimes|regex:/^(-)?[0-9]{1,3}\.[0-9]{1,7}+$/',
-            'geo_longitude' => 'sometimes|regex:/^(-)?[0-9]{1,3}\.[0-9]{1,7}+$/'
+            'geo_latitude' => 'sometimes|regex:/^(-)?[0-9]{1,3}\.[0-9]{1,15}+$/',
+            'geo_longitude' => 'sometimes|regex:/^(-)?[0-9]{1,3}\.[0-9]{1,15}+$/'
         ]);
 
 

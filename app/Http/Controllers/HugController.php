@@ -401,7 +401,9 @@ class HugController extends Controller
             // Addesso nel fetch dei dati dell'abbraccio ci saranno più dati, questa funzione non deve fare nient'altro.
         }
 
-        return parent::response([]);
+        return parent::response([
+                                    "hug" => $hug,
+                                ]);
     }
 
 

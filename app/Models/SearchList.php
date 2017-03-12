@@ -55,7 +55,7 @@ class SearchList extends Model
         $search      = Search::whereId($this->search_id)->first();
         $lastTimeout = Carbon::now()->subMinutes(5)->toDateTimeString();
 	    //$lastUpdate  = Carbon::now()->subMinutes(10)->toDateTimeString();
-	    $lastUpdate  = Carbon::now()->subHours(24)->toDateTimeString();
+	    $lastUpdate  = Carbon::now()->subHours(240)->toDateTimeString();
 
 	    $usersWhoRefused     = $search->usersWhoRefused();
         $usersAlreadyFetched = $search->userAlreadyFetched();

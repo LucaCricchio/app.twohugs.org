@@ -171,7 +171,7 @@ class VipController extends Controller
     /* get currents VIP
      * @params $onlyUserIds if true, returns an array with only users Id
      */
-    public static function getActiveVips($onlyUserIds = false){
+    private static function getActiveVips($onlyUserIds = false){
 
         if($onlyUserIds === true){
             return Vip::whereActive(1)
