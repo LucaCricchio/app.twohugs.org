@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\Notifier;
+use App\Models\User;
 use Validator;
 use App\Models\Hug;
 use App\Models\Chat;
@@ -17,6 +19,10 @@ class ChatController extends Controller {
     const INVALID_MESSAGE = -3003;
     const NOT_YOUR_CHAT = -3004;
 
+    /**
+     * Get chats for the user.
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function getChatForUser() {
         $currentUser = $this->getAuthenticatedUser();
         $chats = Chat::getFromUser($currentUser);
@@ -26,6 +32,10 @@ class ChatController extends Controller {
         ]);
     }
 
+    /**
+     * Get chats for a user with latest messages.
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function getChatMessagesWithLastMessage() {
         $currentUser = $this->getAuthenticatedUser();
         $chats = Chat::getFromUserWithLastMessages($currentUser);
@@ -35,6 +45,12 @@ class ChatController extends Controller {
         ]);
     }
 
+    /**
+     * Get chat messages from a chat given.
+     * @param Request $request Body of request
+     * @param Chat $chat Chat to fetch
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function getChatMessages(Request $request, Chat $chat) {
         $from = null;
         if ($request->has('from'))
@@ -97,6 +113,7 @@ class ChatController extends Controller {
 
     /**
      * Check if a message is valid, then save it as sent.
+     * This also send the message to the user.
      * @param Request $request "Message container"
      * @param Chat $chat Chat where to send message
      * @return \Illuminate\Http\JsonResponse
@@ -118,11 +135,23 @@ class ChatController extends Controller {
                     null
                 );
 
+            // Saves the chat
             $message = new ChatMessage();
             $message->message = $data['message'];
             $message->chat_id = $chat->id;
             $message->user_id = $current->id;
             $message->save();
+
+            Notifier::send(
+                $chat->receiver_id == $current->id ?
+                    User::find($chat->sender_id) : $current,
+                'chat',
+                'messageReceived',
+                [
+                    "chat"    => $chat,
+                    "message" => $message,
+                ]
+            );
 
             return parent::response([
                 'success' => true
