@@ -79,8 +79,9 @@ Route::group(['prefix' => 'search', 'as' => 'search.'], function () {
 Route::group(['prefix' => 'hugs', 'as' => 'hugs.'], function () {
 
     Route::post('', 'HugsController@getList')->name('getList'); //todo: da get a post, temporaneo per facilitare Andrea
-    Route::post('{id}', 'HugController@get')->name('getHug'); //todo: da get a post, temporaneo per facilitare Andrea
+    Route::post('{id}', 'HugController@get')->name('getHug')->where(['id' => '[0-9]+']); //todo: da get a post, temporaneo per facilitare Andrea
 
+	// {id} fa conflitto con create e (forse anche checkForHug). Onestamente non so perchè. Indagheremo dopo
     Route::post('checkForHug', 'HugController@checkForHug');
 
     Route::post('create', 'HugController@createHug')->name('create');
