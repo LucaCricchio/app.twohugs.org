@@ -186,7 +186,11 @@ class UserController extends Controller
                 'error'      => "User not found",
             ]);
         }
-        return $user;
+
+        return parent::response([
+            'success'    => true,
+            'user'     => $user,
+        ]);
     }
 
 

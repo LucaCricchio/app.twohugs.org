@@ -37,8 +37,8 @@ class HugController extends Controller
 
         $this->validate($request, [
             'search_id' => 'required|numeric|exists:searches,id',
-            'geo_latitude' => 'sometimes|regex:/^(-)?[0-9]{1,3}\.[0-9]{1,7}+$/',
-            'geo_longitude' => 'sometimes|regex:/^(-)?[0-9]{1,3}\.[0-9]{1,7}+$/'
+            'geo_latitude' => 'required|regex:/^(-)?[0-9]{1,3}\.[0-9]{1,7}+$/',
+            'geo_longitude' => 'required|regex:/^(-)?[0-9]{1,3}\.[0-9]{1,7}+$/'
         ]);
 
 
@@ -84,8 +84,7 @@ class HugController extends Controller
 
         return parent::response([
                                     "hug" => $hug,
-                                    "sought_user_geo_latitude" => $soughtUser->geo_latitude,
-                                    "sought_user_geo_longitude" => $soughtUser->geo_latitude,
+                                    "sought_user" => $soughtUser,
                                 ]);
     }
 
@@ -201,7 +200,11 @@ class HugController extends Controller
         HugLogger::debug("Entra nell'abbraccio");
         $this->join($hug, $user);
 
-        return parent::response([]);
+        $seekerUser = User::whereId($hug->user_seeker_id)->first();
+
+        return parent::response([
+                        "seeker_user" => $seekerUser
+        ]);
     }
 
 
