@@ -48,7 +48,7 @@ class ProfileController extends Controller
             return parent::response([
                 'validation' => false,
                 'errors'     => $errors,
-            ]);
+            ], \Symfony\Component\HttpFoundation\Response::HTTP_NOT_ACCEPTABLE);
         }
         return parent::response([
             'success'    => true,
