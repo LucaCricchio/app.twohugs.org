@@ -34,7 +34,12 @@ class UserController extends Controller
             ]);
             $data = $request->all();
             $user = new User;
-            $user->register($data);
+            $user->email           = strtolower($data['email']);
+            $user->password        = \Hash::make($data['password']);
+            $user->activation_date = Carbon::now();
+            $user->save();
+
+            // $user->register($data);
 
 
             // Invio email
