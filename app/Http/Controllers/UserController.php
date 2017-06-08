@@ -36,17 +36,18 @@ class UserController extends Controller
             $user = new User;
             $user->register($data);
 
+
             // Invio email
-            Mail::send('emails.registration', ['user' => $user], function($message) use ($request)
-            {
-                /**
-                 * @var \Illuminate\Mail\Message $message
-                 */
-                $message
-                    ->from(Config::get('mail.from.address'), Config::get('mail.from.name'))
-                    ->to($request->input('email'))
-                    ->subject('Twohugs registration: Activate you account');
-            });
+            // Mail::send('emails.registration', ['user' => $user], function($message) use ($request)
+            // {
+            //     /**
+            //      * @var \Illuminate\Mail\Message $message
+            //      */
+            //     $message
+            //         ->from(Config::get('mail.from.address'), Config::get('mail.from.name'))
+            //         ->to($request->input('email'))
+            //         ->subject('Twohugs registration: Activate you account');
+            // });
 
 
         return parent::response([
