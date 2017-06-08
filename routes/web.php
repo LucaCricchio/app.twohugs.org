@@ -134,4 +134,3 @@ Route::group(['prefix' => 'utils'], function () {
 Route::get('/simulator', function () {
     return view('simulator');
 });
-

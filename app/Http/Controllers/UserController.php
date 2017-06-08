@@ -21,10 +21,10 @@ class UserController extends Controller
 
             $this->validate($request, [
                 'email'      => 'required|email|unique:users,email',
-                'password'   => 'required',
-                'first_name' => 'required',
-                'last_name'  => 'required',
-                'birth_date' => 'required|birth_date',
+                'password'   => 'string',
+                'first_name' => 'string',
+                'last_name'  => 'string',
+                'birth_date' => 'birth_date',
                 'country'    => 'bail|exists:countries,id',
                 'city'       => 'bail',
                 'gender'     => 'bail|regex:/^[MF]$/',
