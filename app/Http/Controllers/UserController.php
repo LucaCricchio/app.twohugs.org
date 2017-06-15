@@ -30,6 +30,7 @@ class UserController extends Controller
             $user->password        = \Hash::make($data['password']);
             $user->activation_date = Carbon::now();
             $user->save();
+
             //todo: da usare quando attiviamo l'attivazione via mail (hanno chiesto di toglierlo per adesso)
             //$user->register($data);
 
