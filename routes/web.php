@@ -16,8 +16,6 @@ Route::get('/', function(){
     return view('welcome');
 });
 
-
-
 /** USER */
 Route::group(['prefix' => 'user'], function () {
 
@@ -134,4 +132,3 @@ Route::group(['prefix' => 'utils'], function () {
 Route::get('/simulator', function () {
     return view('simulator');
 });
-

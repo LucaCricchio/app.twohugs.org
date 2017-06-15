@@ -35,6 +35,7 @@ class ProfileController extends Controller
                 'gender'     => 'sometimes|required|regex:/^[MF]$/',
                 'address'    => 'sometimes|required',
                 'zipcode'    => 'sometimes|required|regex:/^[0-9]+$/',
+                //'parent_email' => 'sometimes|unique:users,parent_email'
             ]);
             $user = $this->getAuthenticatedUser();
 
@@ -42,13 +43,15 @@ class ProfileController extends Controller
             foreach($data AS $key => $value) {
                 $user->$key = $request->input($key);
             }
+
+
             $user->save();
         } catch(ValidationException $e) {
             $errors = $e->getErrors();
             return parent::response([
                 'validation' => false,
                 'errors'     => $errors,
-            ]);
+            ], \Symfony\Component\HttpFoundation\Response::HTTP_NOT_ACCEPTABLE);
         }
         return parent::response([
             'success'    => true,

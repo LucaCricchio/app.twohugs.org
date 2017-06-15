@@ -165,7 +165,6 @@ class HugController extends Controller
                                     "hug" => $hug,
                                     "seeker_user_geo_latitude" => $seekerUser->geo_latitude,
                                     "seeker_user_geo_longitude" => $seekerUser->geo_latitude,
-
                                 ]);
     }
 

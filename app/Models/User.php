@@ -136,6 +136,8 @@ class User extends Model implements AuthenticatableContract,
         $attributes = parent::toArray();
         //aggiungo un campo is_vip ogni qualvolta restituisco l'utente.
         $attributes["is_vip"] = $this->is_vip;
+        $attributes['hugs'] = $this->getClosedhugs()->count();
+        $attributes['feedbacks'] = $this->getReceivedFeedbacks();
 
         return $attributes;
     }
@@ -154,18 +156,7 @@ class User extends Model implements AuthenticatableContract,
     {
         $this->email           = strtolower($data['email']);
         $this->password        = Hash::make($data['password']);
-        $this->first_name      = $data['first_name'];
-        $this->last_name       = $data['last_name'];
-        $this->birth_date      = $data['birth_date'];
-        $this->country         = $data['country'];
-        $this->city            = $data['city'];
-        $this->gender          = $data['gender'];
-        $this->address         = $data['address'];
-        $this->zipcode         = $data['zipcode'];
-
-        if ( ! empty($data['parent_email'])) {
-            $this->parent_email = $data['parent_email'];
-        }
+        $this->status          = 0;
 
         $this->activation_code = $this->createActivationCode();
 
@@ -200,6 +191,51 @@ class User extends Model implements AuthenticatableContract,
         $this->geo_last_update = Carbon::now()->toDateTimeString();
 
         $this->save();
+    }
+
+    public function getClosedhugs(){
+
+        return  Hug::whereNotNull('closed_at')->where(function ($query) {
+            /**
+             * @var Builder $query
+             */
+            $query
+                ->where('user_seeker_id', '=', $this->id)
+                ->orWhere('user_sought_id', '=', $this->id);
+        })->get();
+
+    }
+
+    //return the no. of positive, neutral and  negative feedback received by the user
+    public function getReceivedFeedbacks(){
+
+        $receivedFeedbacks =
+            \DB::table('user_hug_feedbacks')
+                ->select('result')
+                ->selectRaw('count(*) as number')
+                ->join('hugs', 'user_hug_feedbacks.hug_id', '=', 'hugs.id')
+                ->join('users', 'users.id', '=', 'hugs.user_seeker_id')
+                ->whereUserId($this->id)
+                ->groupBy('result')
+                ->get();
+
+        $result['positive'] = $result['negative'] = $result['neutral'] = 0;
+
+        foreach ($receivedFeedbacks AS $feedback) {
+            switch ($feedback->result) {
+                case UserHugFeedback::FEEDBACK_POSITIVE:
+                    $result['positive'] = $feedback->number;
+                    break;
+                case UserHugFeedback::FEEDBACK_NEGATIVE:
+                    $result['negative'] = $feedback->number;
+                    break;
+                case UserHugFeedback::FEEDBACK_NEUTRAL:
+                    $result['neutral'] = $feedback->number;
+                    break;
+            }
+        }
+
+        return $result;
     }
 
 }

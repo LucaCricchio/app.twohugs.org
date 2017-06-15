@@ -18,20 +18,11 @@ class UserController extends Controller
 
     public function register(Request $request)
     {
-
             $this->validate($request, [
                 'email'      => 'required|email|unique:users,email',
                 'password'   => 'required',
-                'first_name' => 'required',
-                'last_name'  => 'required',
-                'birth_date' => 'required|birth_date',
-                'country'    => 'bail|exists:countries,id',
-                'city'       => 'bail',
-                'gender'     => 'bail|regex:/^[MF]$/',
-                'address'    => 'bail',
-                'zipcode'    => 'bail|regex:/^[0-9]+$/',
-                'parent_email' => 'bail|unique:users,parent_email'
             ]);
+
             $data = $request->all();
             $user = new User;
             $user->register($data);
@@ -53,6 +44,8 @@ class UserController extends Controller
             'success'    => true,
         ]);
     }
+
+
 
     public function changeStatus(Request $request)
     {
@@ -202,6 +195,23 @@ class UserController extends Controller
         return parent::response([
             'success'    => true,
             'users'     => $users,
+        ]);
+
+    }
+
+    //todo: to remove
+    public function testSetAvailable()
+    {
+        $andrea = User::whereId(1023)->first();
+        $andrea->status = 1;
+        $andrea->save();
+
+        $luca = User::whereId(1021)->first();
+        $luca->status = 1;
+        $luca->save();
+
+        return parent::response([
+            'success'    => true,
         ]);
 
     }
