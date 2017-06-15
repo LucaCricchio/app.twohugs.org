@@ -18,6 +18,7 @@ class UserController extends Controller
 
     public function register(Request $request)
     {
+
             $this->validate($request, [
                 'email'      => 'required|email|unique:users,email',
                 'password'   => 'required',
@@ -25,27 +26,30 @@ class UserController extends Controller
 
             $data = $request->all();
             $user = new User;
-            $user->register($data);
+            $user->email           = strtolower($data['email']);
+            $user->password        = \Hash::make($data['password']);
+            $user->activation_date = Carbon::now();
+            $user->save();
+            //todo: da usare quando attiviamo l'attivazione via mail (hanno chiesto di toglierlo per adesso)
+            //$user->register($data);
 
             // Invio email
-            Mail::send('emails.registration', ['user' => $user], function($message) use ($request)
-            {
-                /**
-                 * @var \Illuminate\Mail\Message $message
-                 */
-                $message
-                    ->from(Config::get('mail.from.address'), Config::get('mail.from.name'))
-                    ->to($request->input('email'))
-                    ->subject('Twohugs registration: Activate you account');
-            });
+//            Mail::send('emails.registration', ['user' => $user], function($message) use ($request)
+//            {
+//                /**
+//                 * @var \Illuminate\Mail\Message $message
+//                 */
+//                $message
+//                    ->from(Config::get('mail.from.address'), Config::get('mail.from.name'))
+//                    ->to($request->input('email'))
+//                    ->subject('Twohugs registration: Activate you account');
+//            });
 
 
         return parent::response([
             'success'    => true,
         ]);
     }
-
-
 
     public function changeStatus(Request $request)
     {
@@ -195,23 +199,6 @@ class UserController extends Controller
         return parent::response([
             'success'    => true,
             'users'     => $users,
-        ]);
-
-    }
-
-    //todo: to remove
-    public function testSetAvailable()
-    {
-        $andrea = User::whereId(1023)->first();
-        $andrea->status = 1;
-        $andrea->save();
-
-        $luca = User::whereId(1021)->first();
-        $luca->status = 1;
-        $luca->save();
-
-        return parent::response([
-            'success'    => true,
         ]);
 
     }
