@@ -154,6 +154,7 @@ class User extends Model implements AuthenticatableContract,
      */
     public function register($data)
     {
+        $this->username        = $data['username'];
         $this->email           = strtolower($data['email']);
         $this->password        = Hash::make($data['password']);
         $this->status          = 0;

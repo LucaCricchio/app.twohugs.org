@@ -20,15 +20,18 @@ class UserController extends Controller
     {
 
             $this->validate($request, [
+                'username'   => 'required|alpha_num|unique:users,username',
                 'email'      => 'required|email|unique:users,email',
                 'password'   => 'required',
             ]);
 
             $data = $request->all();
             $user = new User;
+            $user->username        = $data['username'];
             $user->email           = strtolower($data['email']);
             $user->password        = \Hash::make($data['password']);
             $user->activation_date = Carbon::now();
+            $user->status = 0;
             $user->save();
 
             //todo: da usare quando attiviamo l'attivazione via mail (hanno chiesto di toglierlo per adesso)
