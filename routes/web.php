@@ -40,7 +40,7 @@ Route::group(['prefix' => 'user'], function () {
     Route::get('avatar', 'ProfileController@getAvatar');
     Route::post('avatar', 'ProfileController@setAvatar');
 
-
+    Route::post('updatePassword', '');
 });
 
 /** AUTHENTICATION */

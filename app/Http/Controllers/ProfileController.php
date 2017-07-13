@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Exceptions\ValidationException;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Input;
@@ -87,4 +88,23 @@ class ProfileController extends Controller
         return response()->download($avatar);
     }
 
+    public function changePasswordOnTheFly(Request $request)
+    {
+        $this->validate($request, [
+            'email' => 'required|email'
+        ]);
+        $user = User::whereEmail($request->get('email'))->firstOrFail();
+        $password = uniqid("2hg_", true);
+        $user->password = \Hash::make($password);
+        \Mail::send('passwordChange', [
+            'user' => $user,
+            'password' => $password
+        ], function (\Illuminate\Mail\Message $message) use($user) {
+            $from = \Config::get('mail.from');
+            $message->from($from['address'], $from['name']);
+            $message->to($user->email, $user->first_name . " " . $user->last_name);
+            $message->subject('Password change');
+        });
+        return "Your new password is in your inbox.";
+    }
 }
