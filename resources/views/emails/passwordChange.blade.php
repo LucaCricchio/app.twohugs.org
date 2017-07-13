@@ -232,7 +232,7 @@
 
                                         <table class="one-column" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-spacing:0; border-left:1px solid #e8e7e5; border-right:1px solid #e8e7e5; border-bottom:1px solid #e8e7e5; border-top:1px solid #e8e7e5" bgcolor="#FFFFFF">
                                             <tr>
-                                                <td align="left" style="padding:50px 50px 50px 50px"><p style="color:#262626; font-size:24px; text-align:left; font-family: Verdana, Geneva, sans-serif"><strong>Dear {{ $user.first_name . " " . $user->last_name }}</strong>,</p>
+                                                <td align="left" style="padding:50px 50px 50px 50px"><p style="color:#262626; font-size:24px; text-align:left; font-family: Verdana, Geneva, sans-serif"><strong>Dear {{ $user->first_name . " " . $user->last_name }}</strong>,</p>
                                                     <p style="color:#000000; font-size:16px; text-align:left; font-family: Verdana, Geneva, sans-serif; line-height:22px ">You new password is: <b>{{ $password }}</b> <br />Enjoy!<br />
                                                         <br />
                                                         <br />
