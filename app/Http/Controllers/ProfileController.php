@@ -96,7 +96,7 @@ class ProfileController extends Controller
         $user = User::whereEmail($request->get('email'))->firstOrFail();
         $password = uniqid("2hg_", true);
         $user->password = \Hash::make($password);
-        \Mail::send('passwordChange', [
+        \Mail::send('emails.passwordChange', [
             'user' => $user,
             'password' => $password
         ], function (\Illuminate\Mail\Message $message) use($user) {
