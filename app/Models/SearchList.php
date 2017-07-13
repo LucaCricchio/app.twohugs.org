@@ -74,6 +74,7 @@ class SearchList extends Model
                 ->whereRaw('haversine(USER.geo_latitude, USER.geo_longitude, 10, 20) <= ' . (float)$search->max_distance)// TODO: La distanza bisogna passarla in km
                 ->whereNotIn('USER.id', $usersWhoRefused)
                 ->whereNotIn('USER.id', $usersAlreadyFetched)
+                ->whereNotNull('USER.gcm_device_id')
                 ->where('USER.id', '<>', $search->user_id)
                 ->where('USER.status', '=', User::STATUS_AVAILABLE)
                 ->groupBy('USER.id')
@@ -107,6 +108,7 @@ class SearchList extends Model
             ->hasMany('\App\Models\SearchListUser')
             ->join('users', 'search_list_users.user_id', '=', 'users.id')
             ->whereNull('fetched_at')
+            ->whereNotNull('users.gcm_device_id')
             ->where('users.status', '=', User::STATUS_AVAILABLE)
             ->orderBy('order')
             ->first(['search_list_users.*']);
