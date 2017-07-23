@@ -197,6 +197,10 @@ return [
          */
         Davibennun\LaravelPushNotification\LaravelPushNotificationServiceProvider::class,
 
+        /*
+         * Log Viewer
+         */
+        Rap2hpoutre\LaravelLogViewer\LaravelLogViewerServiceProvider::class,
     ],
 
     /*
