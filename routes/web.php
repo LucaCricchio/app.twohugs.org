@@ -132,4 +132,36 @@ Route::group(['prefix' => 'utils'], function () {
 Route::get('/simulator', function () {
     return view('simulator');
 });
-Route::get('logs', '\Rap2hpoutre\LaravelLogViewer\LogViewerController@index');
+Route::group(['prefix' => 'debug'], function () {
+    Route::get('logs', '\Rap2hpoutre\LaravelLogViewer\LogViewerController@index');
+    Route::group(['prefix' => 'clear'], function () {
+        Route::get('/', function () {
+            \App\Models\Hug::truncate();
+            \App\Models\Search::truncate();
+            \App\Models\SearchList::truncate();
+            \App\Models\SearchListUser::truncate();
+            \App\Models\UserHugFeedback::truncate();
+            \App\Models\UserSearchTimeout::truncate();
+            DB::table('users')
+                ->where('status', '!=', 0)
+                ->update([
+                    'status' => 0
+                ]);
+            return "Cleared";
+        });
+        Route::get('searches', function() {
+            \App\Models\Search::truncate();
+            \App\Models\SearchList::truncate();
+            \App\Models\SearchListUser::truncate();
+            return "Cleared";
+        });
+        Route::get('statuses', function() {
+            DB::table('users')
+              ->where('status', '!=', 0)
+              ->update([
+                  'status' => 0
+              ]);
+            return "Cleared";
+        });
+    });
+});
