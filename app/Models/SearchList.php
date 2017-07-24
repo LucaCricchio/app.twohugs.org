@@ -83,6 +83,30 @@ class SearchList extends Model
                 ->limit(self::MAX_USERS_FOR_LIST)
                 ->get();
 
+        // Temporary solution in order to have timed out users at the end of the list, so MAX_USER_FOR_LIST is doubled
+        $timedOutUsers =
+            DB::table('users AS USER')
+                ->join('user_search_timeouts AS USER_TIMEOUT', 'USER_TIMEOUT.user_id', '=', 'USER.id')
+                ->selectRaw(
+                    implode(", ", [
+                        "USER.id",
+                        sprintf("haversine(USER.geo_latitude, USER.geo_longitude, %s, %s) AS distance", $search->geo_latitude, $search->geo_longitude),
+                        "MAX(USER_TIMEOUT.timed_out_at) AS last_timeout"
+                    ]))
+                ->where('USER.geo_last_update', '>', DB::getPdo()->quote($lastUpdate))
+                ->whereRaw('haversine(USER.geo_latitude, USER.geo_longitude, 10, 20) <= ' . (float)$search->max_distance)// TODO: La distanza bisogna passarla in km
+                ->whereNotIn('USER.id', $usersWhoRefused)
+                ->whereNotIn('USER.id', $usersAlreadyFetched)
+                ->whereNotNull('USER.gcm_device_id')
+                ->where('USER.id', '<>', $search->user_id)
+                ->where('USER.status', '=', User::STATUS_AVAILABLE)
+                ->groupBy('USER.id')
+                ->havingRaw('last_timeout < ' . DB::getPdo()->quote($lastTimeout) . ' OR last_timeout IS NULL')
+                ->orderBy('distance')
+                ->limit(self::MAX_USERS_FOR_LIST)
+                ->get();
+        $users = $users->merge($timedOutUsers);
+
         if (!empty($users)) {
             $tuples = [];
             foreach ($users as $i => $user) {
