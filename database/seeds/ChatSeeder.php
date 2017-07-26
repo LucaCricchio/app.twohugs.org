@@ -20,6 +20,7 @@ class ChatSeeder extends Seeder
         } catch (Exception $e) {
             $this->users[0] = \App\Models\User::first();
         }
+        $this->users[1] = null;
     }
 
 
@@ -34,17 +35,18 @@ class ChatSeeder extends Seeder
         for ($i = 0; $i < self::CHAT_NO; ++$i) {
             $this->genSecondUser();
             $chat = \App\Models\Chat::create([
-                'sender_id' => $this->users[0],
-                'receiver_id' => $this->users[1]
+                'sender_id' => $this->users[0]->id,
+                'receiver_id' => $this->users[1]->id
             ]);
             $chat->save();
             for ($j = 0; $j < self::MESSAGES_NO; ++$j) {
                 \App\Models\ChatMessage::create([
                     'user_id' => $this->users[$j % 2 == 0 ? 0 : 1]->id,
                     'chat_id' => $chat->id,
-                    'message' => $faker->randomAscii
+                    'message' => $faker->text
                 ])->save();
             }
+            $this->excludedUsers[] = $this->users[1];
         }
     }
 
@@ -52,6 +54,6 @@ class ChatSeeder extends Seeder
         $this->excludedUsers[] = $this->users[1];
         do {
             $this->users[1] = \App\Models\User::inRandomOrder()->first();
-        } while ($this->users[1] != $this->users[0] && !in_array($this->users[1], $this->excludedUsers));
+        } while ($this->users[1] == $this->users[0] && !in_array($this->users[1], $this->excludedUsers));
     }
 }
