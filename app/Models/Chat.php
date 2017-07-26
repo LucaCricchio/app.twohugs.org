@@ -30,6 +30,7 @@ class Chat extends Model {
 
     /**
      * Get an array with chats and latest messages.
+     * @param User $user
      * @return array
      */
     public static function getFromUserWithLastMessages(User $user) {
