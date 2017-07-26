@@ -37,15 +37,13 @@ class Chat extends Model {
         return DB::select("
             SELECT id, sender_id, receiver_id, message_id, chat_id, message, newer 
             FROM chats INNER JOIN (
-                SELECT message_id, chat_id, message, MAX(created_at) AS newer 
-                FROM (
-                    SELECT id AS message_id, chat_id, message, created_at
-                    FROM chat_messages
-                    ORDER BY created_at DESC
-                ) AS temp_messages 
+                SELECT id as message_id, chat_id, message, created_at as newer
+                FROM chat_messages
+                GROUP BY chat_id
+                HAVING created_at = MAX(created_at)
             ) as temp_chat_messages
+                ON chats.id=temp_chat_messages.chat_id
             WHERE sender_id='{$user->id}' OR receiver_id='{$user->id}'
-            GROUP BY chat_id
         ");
     }
 
