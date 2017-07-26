@@ -51,11 +51,11 @@ class Chat extends Model {
 
     /**
      * @param $from Carbon|null
-     * @return ChatMessage
+     * @return ChatMessage[]|\Illuminate\Database\Eloquent\Collection|\Illuminate\Database\Query\Builder[]|\Illuminate\Support\Collection
      */
     public function getMessages($from) {
         return $from === null ?
-            ChatMessage::whereChatId($this->id)->orderBy('created_at', 'DESC') :
-            ChatMessage::whereChatId($this->id)->where('created_at', '>', $from)->orderBy('created_at', 'DESC');
+            ChatMessage::whereChatId($this->id)->orderBy('created_at', 'DESC')->get() :
+            ChatMessage::whereChatId($this->id)->where('created_at', '>', $from)->orderBy('created_at', 'DESC')->get();
     }
 }
