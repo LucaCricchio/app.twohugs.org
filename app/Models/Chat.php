@@ -37,7 +37,7 @@ class Chat extends Model {
         return DB::select("
             SELECT id, sender_id, receiver_id, message_id, chat_id, message, photo, newer 
             FROM chats INNER JOIN (
-                SELECT message_id, chat_id, message, photo, MAX(created_at) AS newer 
+                SELECT message_id, chat_id, message, MAX(created_at) AS newer 
                 FROM (
                     SELECT id AS message_id, chat_id, message, photo, created_at
                     FROM chat_messages
