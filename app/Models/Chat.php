@@ -39,8 +39,12 @@ class Chat extends Model {
             FROM chats INNER JOIN (
                 SELECT id as message_id, chat_id, message, created_at as newer
                 FROM chat_messages
+                WHERE created_at = ( 
+                  SELECT MAX(created_at) 
+                  FROM chat_messages as messages 
+                  WHERE messages.chat_id=chat_messages.chat_id 
+                )
                 GROUP BY chat_id
-                HAVING created_at = MAX(created_at)
             ) as temp_chat_messages
                 ON chats.id=temp_chat_messages.chat_id
             WHERE sender_id='{$user->id}' OR receiver_id='{$user->id}'
