@@ -157,7 +157,7 @@ class User extends Model implements AuthenticatableContract,
         $this->username        = $data['username'];
         $this->email           = strtolower($data['email']);
         $this->password        = Hash::make($data['password']);
-        $this->status          = 0;
+        $this->status          = User::STATUS_NOT_AVAILABLE;
 
         $this->activation_code = $this->createActivationCode();
 

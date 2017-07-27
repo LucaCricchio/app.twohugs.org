@@ -31,7 +31,7 @@ class UserController extends Controller
             $user->email           = strtolower($data['email']);
             $user->password        = \Hash::make($data['password']);
             $user->activation_date = Carbon::now();
-            $user->status = 0;
+            $user->status = USER::STATUS_NOT_AVAILABLE;
             $user->save();
 
             //todo: da usare quando attiviamo l'attivazione via mail (hanno chiesto di toglierlo per adesso)
