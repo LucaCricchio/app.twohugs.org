@@ -87,6 +87,7 @@ class UserController extends Controller
             $user->geo_latitude = $request->input('geo_latitude');
             $user->geo_longitude = $request->input('geo_longitude');
             $user->geo_last_update = Carbon::now()->toDateTimeString();
+            $user->status = User::STATUS_AVAILABLE;
             $user->save();
 
         return parent::response([
@@ -167,6 +168,7 @@ class UserController extends Controller
         $user = $this->getAuthenticatedUser();
 
         $user->gcm_device_id = $request->input('gcm_registration_id');;
+        $user->status = User::STATUS_AVAILABLE;
         $user->save();
 
         return parent::response([

@@ -15,6 +15,7 @@ class ProfileController extends Controller
     public function get()
     {
         $user = $this->getAuthenticatedUser();
+        $user->status = User::STATUS_AVAILABLE;
         /**
          * @var User $user
          */
