@@ -2,9 +2,11 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\User;
-use Carbon\Carbon;
+use App\Helpers\Loggers\StatusLogger;
+use DB;
 use Closure;
+use Carbon\Carbon;
+use App\Models\User;
 
 class DeactivateUsers
 {
@@ -21,11 +23,15 @@ class DeactivateUsers
             /**
              * @var $user User
              */
-            $user->status = User::STATUS_AVAILABLE;
-            $user->save();
+            StatusLogger::setUserData($user->id, $user->status);
+            StatusLogger::debug("Current route: {$request->route()}");
+            if ($user->status == User::STATUS_NOT_AVAILABLE) {
+                $user->status = User::STATUS_AVAILABLE;
+                $user->save();
+            }
         }
         $minutesAgo = Carbon::now()->subMinutes(30);
-        \DB::update("UPDATE users SET status='0' WHERE users.geo_last_update < '{$minutesAgo}'");
+        DB::update("UPDATE users SET status='0' WHERE users.geo_last_update < '{$minutesAgo}'");
 
         return $next($request);
     }
