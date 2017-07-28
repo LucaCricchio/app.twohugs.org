@@ -29,7 +29,7 @@ class DeactivateUsers
                 $user->save();
             }
         }
-        $minutesAgo = Carbon::now()->subMinutes(30)->toDateString();
+        $minutesAgo = Carbon::now()->subMinutes(30)->toDateTimeString();
         DB::update("UPDATE users SET status='0' WHERE users.geo_last_update < '{$minutesAgo}'");
 
         return $next($request);
