@@ -5,15 +5,20 @@ namespace App\Http\Controllers;
 use App\Exceptions\ValidationException;
 use App\Exceptions\ExceptionWithCustomCode;
 use App\Helpers\ErrorCode;
+use App\Helpers\Loggers\VipLogger;
+use App\Models\PotentialVipUsersList;
 use App\Models\User;
 use App\Models\Vip;
 use App\Models\VipRequest;
 use App\Helpers\Notifier;
 use App\Helpers\GCMNotification;
+use Carbon\Carbon;
 use Config;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Mail;
 use Illuminate\Database;
+use Mockery\Exception;
 
 
 class VipController extends Controller
@@ -90,17 +95,22 @@ class VipController extends Controller
 
     }
 
-    //testing purpose, we will pass user A data too here
-    public function sendNotification($userID)
+    //sending notification to potential vip user
+    public function sendNotification(VipRequest $request)
     {
-        $user = User::find($userID);
+        $user = User::find($request->user_id);
         //in $data ci saranno i dati da passare al client
         $data = [
             'test_data_field_1'  => "field_1",
             'test_data_field_2'  => "field_2",
             'test_data_field_3'  => "field_3",
         ];
+
         Notifier::send($user, "vip", "notifyVip", $data, "VIP request", "You have been selected to be a VIP");
+        VipLogger::debug("Notifica inviata all'utente {$user->id}");
+
+        $request->fetched_at = Carbon::now()->toDateTimeString();
+        $request->save();
 
     }
 
@@ -111,6 +121,7 @@ class VipController extends Controller
         try {
             VipRequest::whereUserId($userID)
                 ->whereId($requestID)
+                ->whereNotNull('fetched_at')
                 ->where('response_type' , '=', 0)
                 ->firstOrFail();
         } catch (\Exception $e) {
@@ -121,33 +132,92 @@ class VipController extends Controller
     }
 
     //return an ordered list of users (by feedbacks result) of a certain month/year
-    public function getMonthVipList(Request $request)
+    public function createMonthVipList(Request $request)
     {
+        //prendo il mese passato (il mese del server -1, dato che il cron verrà eseguito i primi giorni del mese successivo)
+        // e l'anno dal server
+        $now = Carbon::now()->subMonth();
+        $year = $now->year;
+        $month = $now->month;
 
-        $this->validate($request, [
-            'month' => 'required|integer|between:1,12',
-            'year' => 'required|integer|between:2016,3000'
-        ]);
+        VipLogger::setYearAndMonth($year,$month);
+
+        //controllo se è stata già generata (anno/mese)
+        $potentialVipUsersList = PotentialVipUsersList::where('month', $month)
+                                                        ->where('year', $year)
+                                                        ->first();
+        if ($potentialVipUsersList instanceof PotentialVipUsersList) {
+            $errorMessage = "La lista di questo mese è già stata creata.";
+            VipLogger::error($errorMessage);
+            throw new ExceptionWithCustomCode($errorMessage, ErrorCode::INVALID_REQUEST, 403);
+        }
+
+        VipLogger::debug("Creo istanza lista potenziali vip...");
+        $potentialVipUsersList = new PotentialVipUsersList();
+        $potentialVipUsersList->year = $year; //$request->get('year');
+        $potentialVipUsersList->month = $month;
+        $potentialVipUsersList->save();
 
 
-        //todo: da continuare
-        $vipList =
-            \DB::table('user_hug_feedbacks')
-                ->select('user_id', 'users.username', \DB::raw('sum(result) as feedback_result'))
-                ->join('hugs', 'user_hug_feedbacks.hug_id', '=', 'hugs.id')
-                ->join('users', 'users.id', '=', 'hugs.user_seeker_id')
-                ->whereMonth('hugs.created_at', "=", $request->get('month'))
-                ->whereYear('hugs.created_at', "=", $request->get('year'))
-                ->groupBy('user_id')
-                ->orderBy('feedback_result', 'desc')
-                ->limit(10)
-                ->get();
+        $potentialVipUsersList->createPreviousMonthList();
 
         return parent::response([
-            "vipList" => $vipList]);
-
-
+            'success'    => true,
+        ]);
     }
+
+    //prendo il prossimo utente da contattare ed invio la richiesta
+    public function sendVipProposal(){
+
+        $now = Carbon::now()->subMonth();
+        $year = $now->year;
+        $month = $now->month;
+
+        VipLogger::setYearAndMonth($year, $month);
+        VipLogger::debug('Inizio ricerca utente da contattare..');
+
+
+        //todo: query per trovare il prossimo utente da contattare [controllare meglio possibili casi]
+        $vipRequest = VipRequest::whereNull('fetched_at')
+            ->orderBy('positive_feedbacks', 'desc')
+            ->first();
+
+
+        if(empty($vipRequest)){
+            $message = "Nessun utente da contattare.";
+            VipLogger::debug($message);
+
+            return parent::response([
+                'success'    => true,
+                'message'    => $message
+            ]);
+        }
+
+        try {
+            $user = User::findOrFail($vipRequest->user_id);
+        } catch (\Exception $e) {
+            $errorMessage = "Errore richiesta VIP: lista non generata o l'utente non è stato trovato.";
+            VipLogger::error($errorMessage);
+            throw new ExceptionWithCustomCode($errorMessage, ErrorCode::INVALID_REQUEST, 403);
+        }
+
+        if(!$this->isElegibleToVIP($vipRequest->id, $user->id)){
+            $errorMessage = "Attualmente questo utente non può diventare VIP - user: {$user->id}";
+            VipLogger::error($errorMessage);
+            throw new ExceptionWithCustomCode($errorMessage, ErrorCode::INVALID_REQUEST, 403);
+        }
+
+        //invio proposta
+        VipLogger::debug('Invio notifica..');
+        $this->sendNotification($vipRequest);
+
+
+        return parent::response([
+            'success'    => true,
+        ]);
+    }
+
+
 
     //get currents VIPS and their activities
     public function getCurrentVipActivities(){

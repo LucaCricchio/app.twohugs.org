@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\PotentialVipUserList;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
 
@@ -73,6 +74,8 @@ class VipRequest extends Model
 
         $this->save();
     }
+
+
 
 
 

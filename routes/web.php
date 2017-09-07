@@ -105,7 +105,8 @@ Route::group(['prefix' => 'chats', 'as' => 'chats.'], function() {
 
 /** VIP */
 Route::group(['prefix' => 'vip'], function () {
-    Route::get('monthList', 'VipController@getMonthVipList');
+    Route::post('createMonthList', 'VipController@createMonthVipList');
+    Route::post('sendVipProposal', 'VipController@sendVipProposal');
 
     //get last activities (posts) from current VIP
     Route::get('activities', 'VipController@getCurrentVipActivities');
