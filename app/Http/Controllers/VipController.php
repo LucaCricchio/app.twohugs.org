@@ -42,9 +42,11 @@ class VipController extends Controller
 
             $vipRequest = VipRequest::findOrFail($requestID);
             $vipRequest->accept($userID);
+            VipLogger::debug("L'utente {$userID} ha accettato la proposta di diventare il VIP del mese..");
 
             $vip = new Vip;
             $vip->makeVip($userID);
+            VipLogger::debug("L'utente {$userID} è il nuovo VIP per il prossimo mese.");
 
             // Invio email
             Mail::send('emails.vip', ['user' => $user], function ($message) use ($request) {
@@ -66,7 +68,6 @@ class VipController extends Controller
     }
 
 
-    //todo: da continuare
     //User decline to be VIP
     public function decline(Request $request)
     {
@@ -77,14 +78,17 @@ class VipController extends Controller
         ]);
         $userID = $request->input('user_id');
         $requestID = $request->input('vip_request_id');
-        //$user = User::find($userID);
 
 
         //check if the user has been selected to be a VIP
         if ($this->isElegibleToVIP($requestID, $userID)) {
 
-            $vipRequest = VipRequest::findOrFail($requestID);
+            $vipRequest = VipRequest::findOrFail($requestID)->first();
             $vipRequest->decline($userID);
+            VipLogger::debug("L'utente {$userID} ha rifiutato la proposta di diventare il VIP del mese..");
+
+
+            $this->sendNextVipProposal($vipRequest);
 
             return parent::response([
                 'success' => true,
@@ -103,7 +107,6 @@ class VipController extends Controller
         $data = [
             'test_data_field_1'  => "field_1",
             'test_data_field_2'  => "field_2",
-            'test_data_field_3'  => "field_3",
         ];
 
         Notifier::send($user, "vip", "notifyVip", $data, "VIP request", "You have been selected to be a VIP");
@@ -166,22 +169,27 @@ class VipController extends Controller
         ]);
     }
 
-    //prendo il prossimo utente da contattare ed invio la richiesta
-    public function sendVipProposal(){
+    /**
+     * prendo il prossimo utente da contattare  dalla lista dei potenziali utenti ed invio la richiesta
+     *
+     * @param VipRequest $vipRequest
+     * @return \Illuminate\Http\JsonResponse
+     * @throws ExceptionWithCustomCode
+     */
+    public function sendNextVipProposal(VipRequest $vipRequest){
 
         $now = Carbon::now()->subMonth();
         $year = $now->year;
         $month = $now->month;
 
         VipLogger::setYearAndMonth($year, $month);
-        VipLogger::debug('Inizio ricerca utente da contattare..');
+        VipLogger::debug('Inizio ricerca prossimo utente da contattare..');
 
-
-        //todo: query per trovare il prossimo utente da contattare [controllare meglio possibili casi]
-        $vipRequest = VipRequest::whereNull('fetched_at')
-            ->orderBy('positive_feedbacks', 'desc')
-            ->first();
-
+        //todo: gestire il caso in cui i potenziali vip sono più di un utente
+        $vipRequest = VipRequest::wherePotentialUsersListId($vipRequest->potential_users_list_id)
+                                ->whereNull('fetched_at')
+                                ->orderBy('positive_feedbacks', 'desc')
+                                ->first();
 
         if(empty($vipRequest)){
             $message = "Nessun utente da contattare.";

@@ -23,6 +23,12 @@ use Carbon\Carbon;
  */
 class Vip extends Model
 {
+    // STATO VIP DISATTIVATO
+    const STATUS_INACTIVE   = 0;
+
+    // STATO VIP ATTIVO
+    const STATUS_ACTIVE     = 1;
+
     //disabling autofilling timestamps fields (created_at and updated_at)
     public $timestamps = false;
 
@@ -36,6 +42,11 @@ class Vip extends Model
      */
     protected $table = 'vips';
 
+    /**
+     * @var int
+     */
+    public $active;
+
 
     /**
      * Registra un nuovo Vip
@@ -46,6 +57,7 @@ class Vip extends Model
         $this->user_id = $userID;
 
         $this->created_at = Carbon::now()->toDateTimeString();
+        $this->active = Vip::STATUS_ACTIVE;
 
         $this->save();
     }

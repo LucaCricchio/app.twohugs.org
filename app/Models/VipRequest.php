@@ -44,6 +44,37 @@ class VipRequest extends Model
 
 
     /**
+     * @var string
+     */
+    public $fetched_at;
+
+    /**
+     * @var int
+     */
+    public $potential_users_list_id;
+
+    /**
+     * @var int
+     */
+    public $month;
+
+    /**
+     * @var int
+     */
+    public $year;
+
+    /**
+     * @var string
+     */
+    public $responsed_at;
+
+    /**
+     * @var int
+     */
+    public $response_type;
+
+
+    /**
      *
      * @param $userID
      */
@@ -74,9 +105,6 @@ class VipRequest extends Model
 
         $this->save();
     }
-
-
-
 
 
 }
