@@ -25,7 +25,7 @@ class VipController extends Controller
 {
 
 
-    //User accept to be VIP
+    //User accepts to be VIP
     public function accept(Request $request)
     {
 
@@ -68,7 +68,7 @@ class VipController extends Controller
     }
 
 
-    //User decline to be VIP
+    //User declines to be VIP
     public function decline(Request $request)
     {
 
@@ -103,7 +103,7 @@ class VipController extends Controller
     public function sendNotification(VipRequest $request)
     {
         $user = User::find($request->user_id);
-        //in $data ci saranno i dati da passare al client
+        //todo: da chiedere ad Andrea se potrebbe servire qualche dato
         $data = [
             'test_data_field_1'  => "field_1",
             'test_data_field_2'  => "field_2",
@@ -134,7 +134,8 @@ class VipController extends Controller
         return true;
     }
 
-    //return an ordered list of users (by feedbacks result) of a certain month/year
+    //create an ordered list of users (by feedbacks result) of a certain month/year
+    //call with a cron
     public function createMonthVipList(Request $request)
     {
         //prendo il mese passato (il mese del server -1, dato che il cron verrà eseguito i primi giorni del mese successivo)
@@ -231,15 +232,20 @@ class VipController extends Controller
     public function getCurrentVipActivities(){
 
         $vips = self::getActiveVips();
+        $vipActivities = [];
 
         foreach($vips AS $vip) {
+
             //load vip posts
             $vip->posts;
+            //load vip user
             $vip->user;
+
+            $vipActivities[] = $vip;
         }
 
         return parent::response([
-                "vipActivities" => $vips,
+                "vipActivities" => $vipActivities,
             ]
         );
 
