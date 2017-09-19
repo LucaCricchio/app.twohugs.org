@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\User;
 use App\Models\UserHugFeedback;
+use App\Observers\StatusObserver;
 use DB;
 use Illuminate\Support\ServiceProvider;
 use Validator;
@@ -85,6 +86,7 @@ class AppServiceProvider extends ServiceProvider
             fwrite($logFile, date('Y-m-d H:i:s') . ': ' . $query . PHP_EOL);
             fclose($logFile);
         });
+        User::observe(StatusObserver::class);
     }
 
     /**
