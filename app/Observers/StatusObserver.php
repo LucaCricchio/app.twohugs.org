@@ -13,9 +13,9 @@ class StatusObserver
         $currentRequest = request();
 
         $log = "********************************\n";
-        $log .= "Request came at: {$clockTime}";
-        $log .= "Request route: {$currentRequest->route()->getName()}\n";
-        $log .= "Request user: {$currentRequest->user()}\n";
+        $log .= "Request came at: {$clockTime}\n";
+        $log .= "Request route: {$currentRequest->path()}\n";
+        $log .= "Request user: {$currentRequest->user()->id}\n";
         $log .= "User id: {$user->id}\n";
         $log .= "User status: {$user->status}\n";
         $log .= "********************************\n";
