@@ -83,4 +83,12 @@ class Hug extends Model
         $this->save();
     }
 
+	/**
+	 * @return \Illuminate\Database\Eloquent\Relations\HasMany
+	 */
+    public function selfies()
+    {
+    	return $this->hasMany(UserHugSelfie::class);
+    }
+
 }

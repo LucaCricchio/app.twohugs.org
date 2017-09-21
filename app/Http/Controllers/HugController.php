@@ -13,10 +13,12 @@ use App\Models\User;
 use App\Models\UserHugFeedback;
 use App\Models\UserHugSelfie;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use App\Exceptions\ExceptionWithCustomCode;
 use App\Helpers\ErrorCode;
+use Storage;
 
 class HugController extends Controller
 {
@@ -207,16 +209,17 @@ class HugController extends Controller
     }
 
 
-    /**
-     * L'utente refresha i dati dell'abbraccio aggiornando contemporaneamente la data del checkIn
-     *
-     * Sarebbe utile per aggiornare la posizione dell'altro, nuovi selfie ecc..
-     *
-     * @param Request $request
-     * @param         $id
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
+	/**
+	 * L'utente refresha i dati dell'abbraccio aggiornando contemporaneamente la data del checkIn
+	 *
+	 * Sarebbe utile per aggiornare la posizione dell'altro, nuovi selfie ecc..
+	 *
+	 * @param Request $request
+	 * @param         $id
+	 *
+	 * @return \Illuminate\Http\JsonResponse
+	 * @throws ExceptionWithCustomCode
+	 */
     public function refresh(Request $request, $id)
     {
         $this->validate($request, [
@@ -292,17 +295,7 @@ class HugController extends Controller
 
 	    HugLogger::debug(sprintf("Richiesta chiusura abbraccio %d da parte dell'utente %d", $id, $user->id));
 
-        /*
-         * @var Hug $hug
-         */
-        $hug = Hug::whereId($id)->where(function ($query) use ($user) {
-            /**
-             * @var Builder $query
-             */
-            $query
-                ->where('user_seeker_id', '=', $user->id)
-                ->orWhere('user_sought_id', '=', $user->id);
-        })->first();
+	    $hug = $this->findHug( $id );
 
 	    HugLogger::setHugId($hug->id);
 
@@ -329,17 +322,8 @@ class HugController extends Controller
         $user = $this->getAuthenticatedUser();
 
 	    HugLogger::debug(sprintf("Richiesta dati abbraccio %d da parte dell'utente %d", $id, $user->id));
-        /**
-         * @var Hug $hug
-         */
-        $hug = Hug::whereId($id)->where(function ($query) use ($user) {
-            /**
-             * @var Builder $query
-             */
-            $query
-                ->where('user_seeker_id', '=', $user->id)
-                ->orWhere('user_sought_id', '=', $user->id);
-        })->first();
+
+	    $hug = $this->findHug($id);
 
         return parent::response([
                                     "hug" => $hug,
@@ -367,18 +351,8 @@ class HugController extends Controller
 
 	    HugLogger::debug(sprintf("Richiesta 'Who are you' per l'abbraccio %d da parte dell'utente %d", $hugID, $user->id));
 
-        /**
-         * @var Hug $hug
-         */
-        $hug = Hug::whereId($hugID)->where(function ($query) use ($user) {
-            /**
-             * @var Builder $query
-             */
-            $query
-                ->where('user_seeker_id', '=', $user->id)
-                ->orWhere('user_sought_id', '=', $user->id);
-        })->firstOrFail();
 
+        $hug = $this->findHugOrFail($hugID);
 
         if ($hug->user_seeker_id == $user->id && empty($hug->user_seeker_who_are_you_request)) {
 
@@ -428,17 +402,7 @@ class HugController extends Controller
 
         $user = $this->getAuthenticatedUser();
 
-        /**
-         * @var Hug $hug
-         */
-        $hug = Hug::whereId($id)->whereNotNull('closed_at')->where(function ($query) use ($user) {
-            /**
-             * @var Builder $query
-             */
-            $query
-                ->where('user_seeker_id', '=', $user->id)
-                ->orWhere('user_sought_id', '=', $user->id);
-        })->firstOrFail();
+        $hug = $this->findHugOrFail($id);
 
 
         $feedback = UserHugFeedback::whereUserId($user->id)->whereHugId($hug->id)->first();
@@ -460,44 +424,122 @@ class HugController extends Controller
         return parent::response([]);
     }
 
-    /**
-     * Permette di caricare fino ad un massimo di 3 file
-     *
-     * @param Request $request
-     * @param         $id
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function sendSelfies(Request $request, $id)
+	/**
+	 * Permette di caricare un selfie
+	 *
+	 * @param Request $request
+	 *
+	 * @return \Illuminate\Http\JsonResponse
+	 * @internal param $id
+	 *
+	 */
+    public function sendSelfie(Request $request, $id)
     {
-        // TODO: Da terminare
-        $user = $this->getAuthenticatedUser();
+	    $this->validate($request, [
+		    'image' => 'required|max:2048|mimes:jpg,png',
+	    ]);
 
-        /**
-         * @var Hug $hug
-         */
-        $hug = Hug::whereId($id)->whereNull('closed_at')->where(function ($query) use ($user) {
-            /**
-             * @var Builder $query
-             */
-            $query
-                ->where('user_seeker_id', '=', $user->id)
-                ->orWhere('user_sought_id', '=', $user->id);
-        })->firstOrFail();
+	    $hug = $this->findHugOrFail($id);
+	    $user = $this->getAuthenticatedUser();
+	    HugLogger::debug(sprintf("Caricamento selfie per l'abbraccio %d da parte dell'utente %d", $hug->id, $user->id));
 
 
+	    // Salvataggio del file
         $selfie = new UserHugSelfie;
 
-        $selfie->file_name = 'test.jpg';
+	    $image = $request->file('image');
+	    $path  = $image->hashName(sprintf("hugs/selfies"));
+	    $disk  = Storage::disk('local');
+	    $disk->put($path, file_get_contents($image));
+
+        $selfie->file_name = $image->getClientOriginalName();
         $selfie->hug_id    = $hug->id;
         $selfie->user_id   = $user->id;
-        $selfie->file_path = 'test/test2/test.jpg';
-        $selfie->file_size = 99121;
+        $selfie->file_path = $path;
+        $selfie->file_size = $image->getClientSize();
 
-        $selfie->save();
+	    $selfie->save();
+	    HugLogger::debug(sprintf("Selfie salvato: %s", $hug->toJson()));
+
+        // Notifica all'altro utente.
+	    $this->sendNotificationForNewSelfie(
+	    	$hug,
+	    	$selfie,
+	    	$user->id == $hug->user_seeker_id ? $hug->user_sought_id : $hug->user_seeker_id
+	    );
 
         return parent::response([]);
     }
+
+
+	/**
+	 * @param Request $request
+	 * @param         $hugId
+	 * @param         $selfieId
+	 *
+	 * @return \Illuminate\Http\JsonResponse
+	 */
+    public function getSelfie( Request $request, $hugId, $selfieId ) {
+	    $this->validate($request, [
+		    'hug_id'    => 'required',
+		    'selfie_id' => 'required',
+	    ]);
+
+	    $hug = $this->findHugOrFail( $hugId );
+
+	    /**
+	     * @var UserHugSelfie $selfie
+	     */
+	    $selfie = $hug->selfies()->where( "id", $selfieId )->firstOrFail();
+
+	    return parent::response( [
+		                             'selfie' => $selfie,
+	                             ] );
+    }
+
+	/**
+	 * @param Request $request
+	 * @param         $hugId
+	 * @param         $selfieId
+	 *
+	 * @return \Illuminate\Http\JsonResponse
+	 */
+	public function downloadSelfie( Request $request, $hugId ) {
+		$this->validate($request, [
+			'selfie_id' => 'required',
+		]);
+
+		$hug = $this->findHugOrFail( $hugId );
+
+		/**
+		 * @var UserHugSelfie $selfie
+		 */
+		$selfie = $hug->selfies()->where( "id", $request->get('selfie_id') )->firstOrFail();
+		$readStream = Storage::disk('local')->getDriver()->readStream($selfie->file_path);
+		$fileName   = md5($selfie->file_name);
+
+		HugLogger::debug(sprintf("Scaricamento del selfie %d per l'abbraccio %d da parte dell'utente %d", $selfie->id, $hug->id, $this->getAuthenticatedUser()->id));
+
+		return response()
+			->stream(
+				function () use ($readStream) {
+					set_time_limit(0);
+
+					while(!feof($readStream))
+					{
+						print(fread($readStream, 1024 * 1024));
+						ob_flush();
+						flush();
+					}
+					fclose($readStream);
+				},
+				200,
+				[
+					'Content-Type' => 'application/octet-stream',
+					'Content-Transfer-Encoding' => 'Binary',
+					'Content-disposition' => "attachment; filename=\"$fileName\""
+				]);
+	}
 
     /**
      * @param Hug  $hug
@@ -575,6 +617,56 @@ class HugController extends Controller
             "seeker_user_geo_longitude" => $seekerUser->geo_latitude,
         ]);
     }
+
+	/**
+	 * @param int $id
+	 *
+	 * @return Hug|null
+	 */
+	private function findHug( $id )
+	{
+		$user = $this->getAuthenticatedUser();
+		/*
+				 * @var Hug $hug
+				 */
+		$hug = Hug::whereId( $id )->where( function ( $query ) use ( $user ) {
+			/**
+			 * @var Builder $query
+			 */
+			$query
+				->where( 'user_seeker_id', '=', $user->id )
+				->orWhere( 'user_sought_id', '=', $user->id );
+		} )->first();
+
+		return $hug;
+	}
+
+	private function findHugOrFail( $id )
+	{
+		$hug = $this->findHug($id);
+		if ( is_null($hug) ) {
+			throw (new ModelNotFoundException)->setModel(Hug::class);
+		}
+
+		return $hug;
+	}
+
+	/**
+	 * @param Hug           $hug
+	 * @param UserHugSelfie $selfie
+	 * @param               $userId
+	 */
+	private function sendNotificationForNewSelfie( Hug $hug, UserHugSelfie $selfie, $userId )
+	{
+		$user = User::find($userId)->firstOrFail();
+
+		HugLogger::debug(sprintf("Invio notifica nuovo selfie all'utente %d", $user->id));
+		Notifier::send($user, 'hug', 'newSelfie', [
+			'hug_id' => $hug->id,
+			'selfie_id' => $selfie,
+		]);
+		HugLogger::debug(sprintf("Notifica inviata", $user->id));
+	}
 
 
 }

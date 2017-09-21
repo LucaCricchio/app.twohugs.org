@@ -78,7 +78,9 @@ Route::group(['prefix' => 'hugs', 'as' => 'hugs.'], function () {
     Route::post('{id}/refresh', 'HugController@refresh')->name('refresh');
     Route::post('{id}/close', 'HugController@close')->name('close');
 
-    Route::post('{id}/sendFields', 'HugController@sendSelfies')->name('sendSelfies');
+    Route::post('{id}/sendSelfie', 'HugController@sendSelfie')->name('sendSelfie');
+	Route::get('{id}/getSelfie', 'HugController@getSelfie')->name('getSelfie');
+	Route::get('{id}/downloadSelfie', 'HugController@downloadSelfie')->name('downloadSelfie');
     Route::post('{id}/feedback', 'HugController@setFeedback')->name('setFeedback');
 
     Route::post('sendWhoAreYouRequest', 'HugController@whoAreYou'); //UserController@sendWhoAreYouRequest
