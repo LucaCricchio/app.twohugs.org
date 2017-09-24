@@ -83,7 +83,7 @@ class VipController extends Controller
         //check if the user has been selected to be a VIP
         if ($this->isElegibleToVIP($requestID, $userID)) {
 
-            $vipRequest = VipRequest::findOrFail($requestID)->first();
+            $vipRequest = VipRequest::whereId($requestID)->first();
             $vipRequest->decline($userID);
             VipLogger::debug("L'utente {$userID} ha rifiutato la proposta di diventare il VIP del mese..");
 
@@ -103,10 +103,9 @@ class VipController extends Controller
     public function sendNotification(VipRequest $request)
     {
         $user = User::find($request->user_id);
-        //todo: da chiedere ad Andrea se potrebbe servire qualche dato
+
         $data = [
-            'test_data_field_1'  => "field_1",
-            'test_data_field_2'  => "field_2",
+            'vip_request_id'  => $request->id,
         ];
 
         Notifier::send($user, "vip", "notifyVip", $data, "VIP request", "You have been selected to be a VIP");
@@ -114,7 +113,6 @@ class VipController extends Controller
 
         $request->fetched_at = Carbon::now()->toDateTimeString();
         $request->save();
-
     }
 
     //check if user is elegible to vip (a request mush have been launched by the server first)
@@ -143,6 +141,13 @@ class VipController extends Controller
         $now = Carbon::now()->subMonth();
         $year = $now->year;
         $month = $now->month;
+
+        //todo: solo per i test, da eliminare in seguito
+        if($request->get('year') > 0  && $request->get('month'))
+        {
+            $year =$request->get('year');
+            $month = $request->get('month');
+        }
 
         VipLogger::setYearAndMonth($year,$month);
 
@@ -186,13 +191,17 @@ class VipController extends Controller
         VipLogger::setYearAndMonth($year, $month);
         VipLogger::debug('Inizio ricerca prossimo utente da contattare..');
 
-        //todo: gestire il caso in cui i potenziali vip sono più di un utente
-        $vipRequest = VipRequest::wherePotentialUsersListId($vipRequest->potential_users_list_id)
-                                ->whereNull('fetched_at')
-                                ->orderBy('positive_feedbacks', 'desc')
-                                ->first();
+        $currentPotentialListId = $this->getCurrentPotentialUsersListId();
 
-        if(empty($vipRequest)){
+        VipLogger::debug('Ricavo lista utenti da contattare..');
+        $vipRequests = VipRequest::wherePotentialUsersListId($currentPotentialListId)
+                                ->whereNull('fetched_at')
+                                ->whereResponseType(0)
+                                ->where('positive_feedbacks', DB::raw("(select max(`positive_feedbacks`) from vip_requests where response_type = 0)"))
+                                ->get();
+
+
+        if(empty($vipRequests)){
             $message = "Nessun utente da contattare.";
             VipLogger::debug($message);
 
@@ -202,23 +211,23 @@ class VipController extends Controller
             ]);
         }
 
-        try {
-            $user = User::findOrFail($vipRequest->user_id);
-        } catch (\Exception $e) {
-            $errorMessage = "Errore richiesta VIP: lista non generata o l'utente non è stato trovato.";
-            VipLogger::error($errorMessage);
-            throw new ExceptionWithCustomCode($errorMessage, ErrorCode::INVALID_REQUEST, 403);
+
+        if($this->pendingRequests($currentPotentialListId) === true){
+            $message = "In attesa della risposta dei potenziali utenti VIP già contattati. Aspettare il tempo limite di 24 ore";
+            VipLogger::debug($message);
+
+            return parent::response([
+                'success'    => true,
+                'message'    => $message
+            ]);
         }
 
-        if(!$this->isElegibleToVIP($vipRequest->id, $user->id)){
-            $errorMessage = "Attualmente questo utente non può diventare VIP - user: {$user->id}";
-            VipLogger::error($errorMessage);
-            throw new ExceptionWithCustomCode($errorMessage, ErrorCode::INVALID_REQUEST, 403);
-        }
 
         //invio proposta
-        VipLogger::debug('Invio notifica..');
-        $this->sendNotification($vipRequest);
+        VipLogger::debug('Invio notifica/e..');
+        foreach($vipRequests AS $vipRequest) {
+            $this->sendNotification($vipRequest);
+        }
 
 
         return parent::response([
@@ -226,6 +235,55 @@ class VipController extends Controller
         ]);
     }
 
+    /**
+     * todo: completare
+     * check if there are any pending request that not passed 24 hours
+     */
+    private function pendingRequests($currentPotentialListId){
+
+        $pendingRequest = VipRequest::wherePotentialUsersListId($currentPotentialListId)
+                    ->whereResponseType(0)
+                    ->whereNotNull('fetched_at')
+                    ->orderBy('positive_feedbacks')
+                    ->first();
+
+
+
+
+
+        //if pending requests have passed more than 24 hours return false
+        if (empty($pendingRequest) || $pendingRequest->fetched_at < Carbon::now()->subDay()->toDateTimeString()){
+            return false;
+        }
+
+        return true;
+    }
+
+
+    /**
+     * @return mixed
+     * @throws ExceptionWithCustomCode
+     */
+    private function getCurrentPotentialUsersListId(){
+
+        $now = Carbon::now()->subMonth();
+        $year = $now->year;
+        $month = $now->month;
+
+        $list = PotentialVipUsersList::where('year', $year)
+                                        ->where('month', $month)
+                                        ->first();
+
+
+        if(empty($list)){
+            $errorMessage = "Impossibile ottenere lista, non è stata ancora creata";
+            VipLogger::error($errorMessage);
+            throw new ExceptionWithCustomCode($errorMessage, ErrorCode::INVALID_REQUEST, 403);
+        }
+
+        return $list->id;
+
+    }
 
 
     //get currents VIPS and their activities
@@ -276,6 +334,14 @@ class VipController extends Controller
             return true;
         else
             return false;
+    }
+
+    //todo: da chiedere ad Andrea come preferisce passarmi i contenuti
+    public static function makePublicPost(){
+
+        return parent::response([
+            'success'    => true,
+        ]);
     }
 
 }

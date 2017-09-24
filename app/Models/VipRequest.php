@@ -35,43 +35,7 @@ class VipRequest extends Model
      */
     protected $table = 'vip_requests';
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
-    //protected $fillable = ['name', 'email', 'password'];
 
-
-    /**
-     * @var string
-     */
-    public $fetched_at;
-
-    /**
-     * @var int
-     */
-    public $potential_users_list_id;
-
-    /**
-     * @var int
-     */
-    public $month;
-
-    /**
-     * @var int
-     */
-    public $year;
-
-    /**
-     * @var string
-     */
-    public $responsed_at;
-
-    /**
-     * @var int
-     */
-    public $response_type;
 
 
     /**
@@ -80,10 +44,9 @@ class VipRequest extends Model
      */
     public function decline($userID)
     {
-        $this->user_id = $userID;
+        //$this->user_id = $userID;
 
-        $this->month = Carbon::now()->month;
-        $this->year = Carbon::now()->year;
+
         $this->responsed_at = Carbon::now()->toDateTimeString();
         $this->response_type = self::VIP_REQUEST_DECLINE;
 
@@ -96,10 +59,8 @@ class VipRequest extends Model
      */
     public function accept($userID)
     {
-        $this->user_id = $userID;
+        //$this->user_id = $userID;
 
-        $this->month = Carbon::now()->month;
-        $this->year = Carbon::now()->year;
         $this->responsed_at = Carbon::now()->toDateTimeString();
         $this->response_type = self::VIP_REQUEST_ACCEPT;
 

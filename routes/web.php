@@ -132,6 +132,20 @@ Route::group(['prefix' => 'utils'], function () {
 
 
 // per i test
+//todo: [TEST] solo per testare le mail
+Route::get('/send/mail', function (){
+
+    $user = \App\User::findOrFail(1021);
+
+
+    Mail::send('emails.vip', ['user' => $user], function ($m) use ($user) {
+        $m->from('test@twohugs.org', 'Twohugs Test');
+        $m->to("luca.cricchio@gmail.com", $user->name)->subject('Test mail');
+    });
+
+    return "mail inviata";
+});
+
 Route::get('/simulator', function () {
     return view('simulator');
 });

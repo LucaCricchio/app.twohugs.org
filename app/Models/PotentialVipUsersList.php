@@ -38,6 +38,7 @@ class PotentialVipUsersList extends Model
                 $tuples [] = [
                     'user_id'               => $user->user_id,
                     'positive_feedbacks'    => $user->feedback_result,
+                    'potential_users_list_id' => $this->id,
                 ];
             }
             DB::table('vip_requests')->insert($tuples);
