@@ -18,6 +18,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+	    Validator::extend('upload_count', function($attribute, $value, $parameters)
+	    {
+		    return collect(request()->file($attribute))->count() <= (int) $parameters[0];
+	    });
+
         Validator::extend('username', function($attribute, $value, $parameters, $validator) {
             return (boolean) preg_match("/^[a-zA-Z0-9_]+$/", $value);
         });

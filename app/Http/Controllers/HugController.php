@@ -18,6 +18,7 @@ use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use App\Exceptions\ExceptionWithCustomCode;
 use App\Helpers\ErrorCode;
+use Illuminate\Support\Collection;
 use Storage;
 
 class HugController extends Controller
@@ -435,36 +436,46 @@ class HugController extends Controller
 	 */
     public function sendSelfie(Request $request, $id)
     {
-	    $this->validate($request, [
-		    'image' => 'required|max:2048|mimes:jpg,png',
-	    ]);
+	    $this->validate(
+		    $request,
+		    [
+			    'image'   => 'required|upload_count:3',
+			    'image.*' => 'image|max:2048',
+		    ],
+		    [
+			    'image.upload_count' => 'Too many images',
+		    ]
+	    );
 
 	    $hug = $this->findHugOrFail($id);
 	    $user = $this->getAuthenticatedUser();
 	    HugLogger::debug(sprintf("Caricamento selfie per l'abbraccio %d da parte dell'utente %d", $hug->id, $user->id));
 
 
-	    // Salvataggio del file
-        $selfie = new UserHugSelfie;
+	    // Salvataggio dei file
+        $selfies = collect();
+	    foreach ($request->file('image') as $image) {
+		    $selfie = new UserHugSelfie;
 
-	    $image = $request->file('image');
-	    $path  = $image->hashName(sprintf("hugs/selfies"));
-	    $disk  = Storage::disk('local');
-	    $disk->put($path, file_get_contents($image));
+		    $path  = $image->hashName(sprintf("hugs/selfies"));
+		    $disk  = Storage::disk('local');
+		    $disk->put($path, file_get_contents($image));
 
-        $selfie->file_name = $image->getClientOriginalName();
-        $selfie->hug_id    = $hug->id;
-        $selfie->user_id   = $user->id;
-        $selfie->file_path = $path;
-        $selfie->file_size = $image->getClientSize();
+		    $selfie->file_name = $image->getClientOriginalName();
+		    $selfie->hug_id    = $hug->id;
+		    $selfie->user_id   = $user->id;
+		    $selfie->file_path = $path;
+		    $selfie->file_size = $image->getClientSize();
 
-	    $selfie->save();
-	    HugLogger::debug(sprintf("Selfie salvato: %s", $hug->toJson()));
+		    $selfie->save();
+		    HugLogger::debug(sprintf("Selfie salvato: %s", $hug->toJson()));
+		    $selfies->push($selfie);
+	    }
 
         // Notifica all'altro utente.
-	    $this->sendNotificationForNewSelfie(
+	    $this->sendNotificationForNewSelfies(
 	    	$hug,
-	    	$selfie,
+	    	$selfies,
 	    	$user->id == $hug->user_seeker_id ? $hug->user_sought_id : $hug->user_seeker_id
 	    );
 
@@ -515,30 +526,10 @@ class HugController extends Controller
 		 * @var UserHugSelfie $selfie
 		 */
 		$selfie = $hug->selfies()->where( "id", $request->get('selfie_id') )->firstOrFail();
-		$readStream = Storage::disk('local')->getDriver()->readStream($selfie->file_path);
-		$fileName   = md5($selfie->file_name);
 
 		HugLogger::debug(sprintf("Scaricamento del selfie %d per l'abbraccio %d da parte dell'utente %d", $selfie->id, $hug->id, $this->getAuthenticatedUser()->id));
 
-		return response()
-			->stream(
-				function () use ($readStream) {
-					set_time_limit(0);
-
-					while(!feof($readStream))
-					{
-						print(fread($readStream, 1024 * 1024));
-						ob_flush();
-						flush();
-					}
-					fclose($readStream);
-				},
-				200,
-				[
-					'Content-Type' => 'application/octet-stream',
-					'Content-Transfer-Encoding' => 'Binary',
-					'Content-disposition' => "attachment; filename=\"$fileName\""
-				]);
+		return response()->download(Storage::disk('local')->getDriver()->getAdapter()->applyPathPrefix($selfie->file_path));
 	}
 
     /**
@@ -652,19 +643,19 @@ class HugController extends Controller
 	}
 
 	/**
-	 * @param Hug           $hug
-	 * @param UserHugSelfie $selfie
-	 * @param               $userId
+	 * @param Hug        $hug
+	 * @param Collection $selfies
+	 * @param            $userId
 	 */
-	private function sendNotificationForNewSelfie( Hug $hug, UserHugSelfie $selfie, $userId )
+	private function sendNotificationForNewSelfies( Hug $hug, Collection $selfies, $userId )
 	{
 		$user = User::find($userId)->firstOrFail();
 
 		HugLogger::debug(sprintf("Invio notifica nuovo selfie all'utente %d", $user->id));
-		Notifier::send($user, 'hug', 'newSelfie', [
-			'hug_id' => $hug->id,
-			'selfie_id' => $selfie,
-		]);
+		Notifier::send( $user, 'hug', 'newSelfies', [
+			'hug_id'     => $hug->id,
+			'selfie_ids' => $selfies->pluck( 'id' )->toArray(),
+		] );
 		HugLogger::debug(sprintf("Notifica inviata", $user->id));
 	}
 
