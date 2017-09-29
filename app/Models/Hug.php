@@ -41,7 +41,7 @@ use Illuminate\Database\Eloquent\Model;
 class Hug extends Model
 {
 
-    const MAX_CHECK_IN_DELAY = 60; // Un utente può ritardare massimo di 60 secondi nell'inviare un checkIn
+    const MAX_CHECK_IN_DELAY = 180; // Un utente può ritardare massimo di 180 secondi nell'inviare un checkIn
 
     public $timestamps = false;
 
