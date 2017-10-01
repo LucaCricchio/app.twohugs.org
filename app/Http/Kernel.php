@@ -2,7 +2,6 @@
 
 namespace App\Http;
 
-use App\Http\Middleware\DeactivateUsers;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 
 class Kernel extends HttpKernel
@@ -31,8 +30,7 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             //\App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
-            \App\Http\Middleware\JwtAuthenticate::class,
-            \App\Http\Middleware\DeactivateUsers::class
+            \App\Http\Middleware\JwtAuthenticate::class
         ],
 
         'api' => [
