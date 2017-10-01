@@ -588,7 +588,10 @@ class SearchController extends Controller
      */
     private function registerUserTimeout(Search $search, User $user)
     {
-    	SearchLogger::debug("Timeout dell'utente {$user->id}.");
+    	// TODO: Commentato su richiesta di Andrea in data 2017.10.01 - Da ripristinare dopo i test
+	    //SearchLogger::debug("Timeout dell'utente {$user->id}.");
+	    SearchLogger::debug("[Non effettuato/Disabilitato] Timeout dell'utente {$user->id}.");
+	    return true;
 
 	    $timeout = new UserSearchTimeout;
 
