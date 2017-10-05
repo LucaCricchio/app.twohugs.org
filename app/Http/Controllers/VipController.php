@@ -6,9 +6,11 @@ use App\Exceptions\ValidationException;
 use App\Exceptions\ExceptionWithCustomCode;
 use App\Helpers\ErrorCode;
 use App\Helpers\Loggers\VipLogger;
+use App\Helpers\Loggers\VipPostLogger;
 use App\Models\PotentialVipUsersList;
 use App\Models\User;
 use App\Models\Vip;
+use App\Models\VipPost;
 use App\Models\VipRequest;
 use App\Helpers\Notifier;
 use App\Helpers\GCMNotification;
@@ -136,6 +138,9 @@ class VipController extends Controller
     //call with a cron
     public function createMonthVipList(Request $request)
     {
+        //rimuovo gli eventuali Vip del mese precedente
+        $this->removeCurrentVipUsers();
+
         //prendo il mese passato (il mese del server -1, dato che il cron verrà eseguito i primi giorni del mese successivo)
         // e l'anno dal server
         $now = Carbon::now()->subMonth();
@@ -266,9 +271,9 @@ class VipController extends Controller
      */
     private function getCurrentPotentialUsersListId(){
 
-        $now = Carbon::now()->subMonth();
-        $year = $now->year;
-        $month = $now->month;
+        $prevMonth = Carbon::now()->subMonth();
+        $year = $prevMonth->year;
+        $month = $prevMonth->month;
 
         $list = PotentialVipUsersList::where('year', $year)
                                         ->where('month', $month)
@@ -316,10 +321,10 @@ class VipController extends Controller
     private static function getActiveVips($onlyUserIds = false){
 
         if($onlyUserIds === true){
-            return Vip::whereActive(1)
+            return Vip::whereActive(Vip::STATUS_ACTIVE)
                 ->orderBy('created_at', 'desc')->pluck('user_id')->toArray();
         }else {
-            return Vip::whereActive(1)
+            return Vip::whereActive(Vip::STATUS_ACTIVE)
                 ->orderBy('created_at', 'desc')->get();
         }
     }
@@ -337,11 +342,81 @@ class VipController extends Controller
     }
 
     //todo: da chiedere ad Andrea come preferisce passarmi i contenuti
-    public static function makePublicPost(){
+    public function makePublicPost(Request $request){
+
+        $this->validate($request, [
+            'text' => 'sometimes|max:255',
+            'image' => 'sometimes|max:2048|mimes:jpeg,jpg,png',
+            'video_link' => 'sometimes',
+        ]);
+
+
+        $user = $this->getAuthenticatedUser();
+
+        VipPostLogger::debug("Invio post da parte dell'utente: {$user->id}..");
+
+        if(!$this->isVip($user->id)){
+            $errorMessage = "L'utente {$user->id} non è vip, non può quindi pubblicare post.";
+            VipPostLogger::error($errorMessage);
+            throw new ExceptionWithCustomCode($errorMessage, ErrorCode::USER_NOT_AUTHORISED, 403);
+        }
+
+        $vip = Vip::whereUserId($user->id)
+                    ->whereActive(Vip::STATUS_ACTIVE)->first();
+
+        if(!$vip){
+            $errorMessage = "Utente vip non trovato: user {$user->id}.";
+            VipPostLogger::error($errorMessage);
+            throw new ExceptionWithCustomCode($errorMessage, ErrorCode::INVALID_REQUEST, 403);
+        }
+
+        // Salvataggio del file
+        $post = new VipPost();
+        $post->vip_id = $vip->id;
+
+        if($request->hasFile('image')) {
+            $image = $request->file('image');
+            $path = $image->hashName(sprintf("vips/images"));
+            $disk = \Storage::disk('local');
+            $disk->put($path, file_get_contents($image));
+
+//            $post->file_name = $image->getClientOriginalName();
+            $post->image_path = $path;
+//            $post->file_size = $image->getClientSize();
+        }
+
+
+        $post->content = $request->input('content');
+        $post->video_link = $request->input('video_link');
+
+        $post->save();
+        VipPostLogger::debug(sprintf("Post salvato: %s", $post->toJson()));
+
 
         return parent::response([
             'success'    => true,
         ]);
+    }
+
+    public function removeCurrentVipUsers(){
+        VipLogger::debug("Rimuovo tutti i vip attuali..");
+        Vip::whereActive(Vip::STATUS_ACTIVE)->update(['active' => Vip::STATUS_INACTIVE]);
+        VipLogger::debug("Vip rimmossi.");
+
+    }
+
+    public function getPostImage(Request $request){
+
+        $this->validate($request, [
+            'post_id' => 'required|exists:vip_posts,id',
+        ]);
+
+        VipPostLogger::setPostId($request->get('post_id'));
+        VipPostLogger::debug("Richiesta immagine post.");
+        $vipPost = VipPost::whereId($request->get('post_id'))->firstOrFail();
+
+
+        return response()->download(\Storage::disk('local')->getDriver()->getAdapter()->applyPathPrefix($vipPost->image_path));
     }
 
 }
