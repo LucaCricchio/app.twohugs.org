@@ -88,6 +88,7 @@ class ChatController extends Controller {
 
                     return parent::response(
                         [
+                            'success' => true,
                             'chat' => $chat
                         ],
                         Response::HTTP_CREATED
