@@ -148,7 +148,7 @@ class VipController extends Controller
         $month = $now->month;
 
         //todo: solo per i test, da eliminare in seguito
-        if($request->get('year') > 0  && $request->get('month'))
+        if($request->get('year') > 0  && $request->get('month') > 0)
         {
             $year =$request->get('year');
             $month = $request->get('month');
@@ -206,7 +206,7 @@ class VipController extends Controller
                                 ->get();
 
 
-        if(empty($vipRequests)){
+        if($vipRequests->isEmpty()){
             $message = "Nessun utente da contattare.";
             VipLogger::debug($message);
 
@@ -229,7 +229,7 @@ class VipController extends Controller
 
 
         //invio proposta
-        VipLogger::debug('Invio notifica/e..');
+        VipLogger::debug('Invio notifica..');
         foreach($vipRequests AS $vipRequest) {
             $this->sendNotification($vipRequest);
         }
@@ -241,7 +241,6 @@ class VipController extends Controller
     }
 
     /**
-     * todo: completare
      * check if there are any pending request that not passed 24 hours
      */
     private function pendingRequests($currentPotentialListId){
@@ -341,7 +340,7 @@ class VipController extends Controller
             return false;
     }
 
-    //todo: da chiedere ad Andrea come preferisce passarmi i contenuti
+
     public function makePublicPost(Request $request){
 
         $this->validate($request, [
